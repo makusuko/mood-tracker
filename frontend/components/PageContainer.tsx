@@ -42,7 +42,7 @@ const useThemedStyles = (colors: ThemeColors, insetTop: number, insetBottom: num
                     // react-navigation, so we only clear the FAB here.) Screens that
                     // opt OUT of this ScrollView owe themselves the same padding —
                     // hence the shared constant, see styles/layout.ts.
-                    paddingBottom: LAYOUT_FAB_CLEARANCE + insetBottom,
+                    paddingBottom: LAYOUT_FAB_CLEARANCE,
                 },
                 fullHeightContent: {
                     flex: 1,

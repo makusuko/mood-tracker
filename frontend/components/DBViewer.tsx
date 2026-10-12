@@ -105,7 +105,7 @@ const useThemedStyles = (colors: ThemeColors, insetBottom: number) => {
             // header outside the content container (left:0/right:0 of the list), so
             // a container gutter would misalign the sticky copy from its in-list
             // original.
-            paddingBottom: LAYOUT_FAB_CLEARANCE + insetBottom,
+            paddingBottom: LAYOUT_FAB_CLEARANCE,
         },
         loadingContainer: {
             flex: 1,

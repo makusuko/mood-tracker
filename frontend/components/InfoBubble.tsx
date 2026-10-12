@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
@@ -7,10 +7,11 @@ import { useThemeColors } from '@/styles/global';
 
 type InfoBubbleProps = {
   text: string;
+  style?: StyleProp<ViewStyle> | undefined;
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 };
 
-const InfoBubble = ({ text, position = 'top-right' }: InfoBubbleProps) => {
+const InfoBubble = ({ text, position = 'top-right', style = undefined }: InfoBubbleProps) => {
   const colors = useThemeColors();
   const [showInfo, setShowInfo] = useState(false);
 
@@ -84,6 +85,7 @@ const InfoBubble = ({ text, position = 'top-right' }: InfoBubbleProps) => {
   return (
     <View style={[
       styles.container,
+      style,
       getPositionStyle(position),
     ]}>
       {/* Info button */}
