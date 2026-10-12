@@ -29,6 +29,7 @@ import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { useEntryDraft, EntryDraft } from './hooks/useEntryDraft';
 import { selectPhotosToAdd } from './photoSelection';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MAX_PHOTOS = 5;
 
@@ -340,7 +341,8 @@ const EntryFormOverlay: React.FC<{
     onSubmit: (data: EntryFormData) => Promise<void>;
 }> = ({ onClose, initialData, onSubmit }) => {
     const colors = useThemeColors();
-    const styles = useThemedStyles(colors);
+    const insets = useSafeAreaInsets();
+    const styles = useThemedStyles(colors, insets.top, insets.bottom);
 
     // Replicate <Modal onRequestClose>: Android hardware back closes the overlay
     // while it's up (and swallows the event so it doesn't pop the route under it).
@@ -362,7 +364,7 @@ const EntryFormOverlay: React.FC<{
                     <Ionicons name="close" color={colors.text} size={24} />
                 </Pressable>
 
-                <InfoBubble
+                <InfoBubble style={styles.infoBubble}
                     text="Hold an activity to edit or delete it"
                     position="top-right"
                 />
@@ -445,7 +447,8 @@ export const EntryForm: React.FC<EntryFormProps> = ({
     // edge-to-edge — without it the content fits the window exactly and there's
     // nothing to scroll, so the keyboard sits on top of the Notes field.
     const keyboardHeight = useKeyboardHeight();
-    const styles = useThemedStyles(colors);
+    const insets = useSafeAreaInsets();
+    const styles = useThemedStyles(colors, insets.top, insets.bottom);
     // Animated ref to the form's scroll container, threaded into the activity
     // drag-reorder grid so it can auto-scroll the form while a chip is dragged
     // near an edge (react-native-sortables scrollableRef). Its `.current` also
@@ -492,12 +495,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({
         <Animated.ScrollView
             ref={scrollRef}
             style={styles.scroll}
-            contentContainerStyle={[
-                styles.contentContainer,
-                // Extra bottom room == keyboard height so the last field can sit
-                // above the keyboard. 0 when hidden (no-op).
-                { paddingBottom: styles.contentContainer.paddingBottom + keyboardHeight },
-            ]}
+            contentContainerStyle={styles.contentContainer}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator
         >
@@ -532,7 +530,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({
 };
 
 // Styles
-const useThemedStyles = (colors: ThemeColors) =>
+const useThemedStyles = (colors: ThemeColors, insetTop: number = 16, insetBottom: number = 0) =>
     StyleSheet.create({
         modalContainer: {
             // Rendered as an in-tree overlay (StyleSheet.absoluteFill, applied at
@@ -540,9 +538,10 @@ const useThemedStyles = (colors: ThemeColors) =>
             // so no explicit Dimensions sizing is needed (that was the old native
             // <Modal> Fabric flex-collapse workaround, gone with the Modal).
             backgroundColor: colors.background,
-            paddingTop: 16,
+            paddingHorizontal: 20,            
         },
         modalHeader: {
+            paddingTop: insetTop + 8,
             paddingHorizontal: 12,
             flexDirection: 'row',
             justifyContent: 'flex-start',
@@ -551,6 +550,12 @@ const useThemedStyles = (colors: ThemeColors) =>
         closeButton: {
             padding: 8,
         },
+        infoBubble: {
+            paddingTop: insetTop + 8,
+            paddingLeft: 8,
+            paddingRight: 8,
+            paddingBottom: 8,
+        },        
         scroll: {
             flex: 1,
         },
@@ -560,8 +565,8 @@ const useThemedStyles = (colors: ThemeColors) =>
             // guarantees the Continue/Submit button is always reachable on small
             // screens. Vertical padding gives breathing room at both ends.
             flexGrow: 1,
-            paddingTop: 8,
-            paddingBottom: 24,
+            paddingTop: insetTop + 8,
+            paddingBottom: insetBottom + 24,
             alignItems: 'center',
             justifyContent: 'center',
             paddingHorizontal: 20,

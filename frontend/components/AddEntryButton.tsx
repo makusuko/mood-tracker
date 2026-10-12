@@ -122,7 +122,7 @@ const useThemedStyles = (colors: ThemeColors, insetBottom: number) => {
                     // Float above the system-nav area (3-button ≈ 48dp, gesture
                     // ≈ 24dp, 0 on no-inset displays) so the FAB never overlaps
                     // the Android nav buttons / gesture pill.
-                    bottom: FAB_BOTTOM_GAP + insetBottom,
+                    bottom: FAB_BOTTOM_GAP,
                     zIndex: 1000,
                     backgroundColor: colors.accent,
                     width: 56,
