@@ -72,7 +72,7 @@ type Insights = {
     bestDay: string | null;
     worstDay: string | null;
     hasDowSignal: boolean;
-    topActivity: { name: string; avgWith: number; avgWithout: number; delta: number } | null;
+    topActivities: { name: string; avgWith: number; avgWithout: number; delta: number }[] | null;
     moodState: MoodState;
     drivers: MoodDriversData;
     // Health Connect (Android + feature-flag only). Cards render only when the
@@ -141,7 +141,7 @@ const EMPTY: Insights = {
     bestDay: null,
     worstDay: null,
     hasDowSignal: false,
-    topActivity: null,
+    topActivities: null,
     moodState: EMPTY_MOOD_STATE,
     drivers: EMPTY_DRIVERS,
     showHealth: false,
@@ -222,11 +222,11 @@ export default function InsightsScreen() {
                     const corr = computeActivityCorrelation(
                         aggregateActivityCorrelation(activityRawRows)
                     );
-                    // Most uplifting activity = largest positive, meaningful delta.
+                    // Most uplifting activities = largest positive, meaningful delta.
                     const positives = corr.meaningful
                         .filter((m) => m.delta > 0)
                         .sort((a, b) => b.delta - a.delta);
-                    const top = positives[0] ?? null;
+                    const top = positives?.slice(0, 3) ?? null;
 
                     // 2-axis "how you've been" state over all recorded local days,
                     // and the state-conditioned forward-looking drivers (reusing
@@ -266,14 +266,14 @@ export default function InsightsScreen() {
                         bestDay: dow.hasEnoughData ? dow.bestDay : null,
                         worstDay: dow.hasEnoughData ? dow.worstDay : null,
                         hasDowSignal: dow.hasEnoughData,
-                        topActivity: top
-                            ? {
+                        topActivities: top?.map((top) => {
+                            return {
                                   name: top.activity_name,
                                   avgWith: top.avg_with,
                                   avgWithout: top.avg_without,
                                   delta: top.delta,
-                              }
-                            : null,
+                            }
+                        }) ?? null,
                         moodState,
                         drivers,
                         showHealth,
@@ -405,26 +405,28 @@ export default function InsightsScreen() {
             {/* Top activity correlation */}
             <Card>
                 <View style={styles.row}>
-                    <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}>
-                        <Ionicons name="sparkles-outline" size={20} color={colors.accent} />
-                    </View>
                     <View style={styles.grow}>
-                        <Text style={styles.cardTitle}>What lifts your mood</Text>
-                        {d.topActivity ? (
-                            <Text style={styles.cardBody}>
+                        <View style={styles.headerRow}>
+                            <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}>
+                                <Ionicons name="sparkles-outline" size={20} color={colors.accent} />
+                            </View>
+                            <Text style={styles.cardTitle}>What lifts your mood</Text>
+                        </View>
+                        {d.topActivities?.map((top) => (
+                            <Text key={top.name} style={styles.cardBody}>
                                 When you log{' '}
-                                <Text style={styles.emphasis}>{d.topActivity.name}</Text>, your
+                                <Text style={styles.emphasis}>{top.name}</Text>, your
                                 mood averages{' '}
                                 <Text style={styles.emphasis}>
-                                    {d.topActivity.avgWith.toFixed(1)}
+                                    {top.avgWith.toFixed(1)}
                                 </Text>{' '}
                                 — that's{' '}
                                 <Text style={[styles.emphasis, { color: colors.accent }]}>
-                                    +{d.topActivity.delta.toFixed(1)}
+                                    +{top.delta.toFixed(1)}
                                 </Text>{' '}
-                                above days without it ({d.topActivity.avgWithout.toFixed(1)}).
+                                above days without it ({top.avgWithout.toFixed(1)}).
                             </Text>
-                        ) : (
+                       )) ?? (
                             <Text style={styles.cardBody}>
                                 Log activities alongside your mood and we'll surface which ones
                                 tend to lift you most.
@@ -494,6 +496,12 @@ const useStyles = (colors: ThemeColors) =>
                     gap: 14,
                 },
                 grow: { flex: 1 },
+                headerRow: {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginBottom: 12,
+                },            
                 iconCircle: {
                     width: 44,
                     height: 44,
@@ -540,6 +548,8 @@ const useStyles = (colors: ThemeColors) =>
                     fontSize: 15,
                     lineHeight: 22,
                     color: colors.textSecondary,
+                    marginTop: 4,
+                    marginBottom: 12,
                 },
                 emphasis: {
                     color: colors.text,
