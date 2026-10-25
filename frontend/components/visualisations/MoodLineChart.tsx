@@ -60,6 +60,10 @@ export type MoodLinePoint = {
     date: string;
     /** Average mood, or null for a day with no entry (drawn as a dashed gap). */
     value: number | null;
+    /** Minimum mood for the day, or null. */
+    min: number | null;
+    /** Maximum mood for the day, or null. */
+    max: number | null;
 };
 
 export type MoodLineChartProps = {
@@ -135,6 +139,11 @@ const GAP_STROKE_OPACITY = 0.7;
 const OVERLAY_DASH = '7 5';
 const OVERLAY_WIDTH = 2;
 const OVERLAY_OPACITY = 0.6;
+const MINMAX_R = 2.0;
+const MINMAX_STROKE_WIDTH = 1.0;
+const MINMAX_LINE_WIDTH = 2.0;
+const MINMAX_OPACITY = 0.6;
+const MINMAX_DASH = '4 5';
 const GRID_OPACITY = 0.4;
 const GRID_LABEL_SIZE = 10;
 
@@ -183,6 +192,8 @@ export const MoodLineChart: React.FC<MoodLineChartProps> = ({
     const lingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const values = useMemo(() => series.map((p) => p.value), [series]);
+    const min = useMemo(() => series.map((p) => p.min), [series]);
+    const max = useMemo(() => series.map((p) => p.max), [series]);
     const activeDomain = useMemo(() => resolveDomain(values, domain), [values, domain]);
 
     const dims: ChartDims = useMemo(
@@ -208,6 +219,15 @@ export const MoodLineChart: React.FC<MoodLineChartProps> = ({
         () => buildChartGeometry(values, dims, activeDomain, { areaSpansGaps: true }),
         [values, dims, activeDomain]
     );
+    const geoMin = useMemo(
+        () => buildChartGeometry(min, dims, activeDomain, { areaSpansGaps: true }),
+        [min, dims, activeDomain]
+    );
+    const geoMax = useMemo(
+        () => buildChartGeometry(max, dims, activeDomain, { areaSpansGaps: true }),
+        [max, dims, activeDomain]
+    );
+
     const gridLines = useMemo(
         () => buildGridLines(activeDomain, dims),
         [activeDomain, dims]
@@ -459,6 +479,36 @@ export const MoodLineChart: React.FC<MoodLineChartProps> = ({
                                 />
                             ))}
 
+                            {geoMin.linePath ? (
+                                <Path
+                                    key="minline"
+                                    testID={`${testID}-minline`}
+                                    d={geoMin.linePath}
+                                    stroke="lightgray"
+                                    strokeDasharray={MINMAX_DASH}
+                                    strokeWidth={MINMAX_LINE_WIDTH}
+                                    strokeOpacity={MINMAX_OPACITY}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    fill="none"
+                                />
+                            ) : null}
+
+                            {geoMax.linePath ? (
+                                <Path
+                                    key="maxline"
+                                    testID={`${testID}-maxline`}
+                                    d={geoMax.linePath}
+                                    stroke="lightgray"
+                                    strokeWidth={MINMAX_LINE_WIDTH}
+                                    strokeOpacity={MINMAX_OPACITY}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeDasharray={MINMAX_DASH}
+                                    fill="none"
+                                />
+                            ) : null}
+
                             {geo.linePath ? (
                                 <>
                                     {/* Glow first, so the crisp line sits on top of it. */}
@@ -497,6 +547,37 @@ export const MoodLineChart: React.FC<MoodLineChartProps> = ({
                                     fill="none"
                                 />
                             ) : null}
+
+
+                            {geoMin.realPoints.map((p) => (
+                                <Circle
+                                    key={`dotmin-${p.index}`}
+                                    testID={`${testID}-dotmin`}
+                                    cx={p.x}
+                                    cy={p.y}
+                                    r={MINMAX_R}
+                                    fill="lightgray"
+                                    fillOpacity={MINMAX_OPACITY}
+                                    stroke="gray"
+                                    strokeWidth={MINMAX_STROKE_WIDTH}
+                                    strokeOpacity={MINMAX_OPACITY}
+                                />
+                            ))}
+
+                            {geoMax.realPoints.map((p) => (
+                                <Circle
+                                    key={`dotmax-${p.index}`}
+                                    testID={`${testID}-dotmax`}
+                                    cx={p.x}
+                                    cy={p.y}
+                                    r={MINMAX_R}
+                                    fill="lightgray"
+                                    fillOpacity={MINMAX_OPACITY}
+                                    stroke="gray"
+                                    strokeWidth={MINMAX_STROKE_WIDTH}
+                                    strokeOpacity={MINMAX_OPACITY}
+                                />
+                            ))}
 
                             {/* Real points only. A day with no entry gets NO dot —
                                 the gap is the information. */}

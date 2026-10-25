@@ -164,7 +164,7 @@ export const MoodTrendExpanded: React.FC<MoodTrendExpandedProps> = ({
                             <MoodTrendReadout
                                 day={point.date}
                                 average={point.value}
-                                entry={data.latestEntries.get(point.date) ?? null}
+                                entries={data.entries.get(point.date) ?? null}
                                 variant="panel"
                             />
                         ) : (

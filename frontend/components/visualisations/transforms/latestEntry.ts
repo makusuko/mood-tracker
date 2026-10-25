@@ -78,19 +78,17 @@ export const formatReadoutDay = (day: string, pref: DateFormatPref): string => {
 };
 
 /**
- * Map of local day -> that day's MOST RECENT entry.
+ * Map of local day -> that day's entries.
  *
- * Rows may arrive in any order; the latest stored instant wins per day. Rows
- * with an unparseable date or a non-finite mood are skipped rather than
- * throwing (degenerate data must never break the chart — an empty database and
- * a half-imported one are both real code paths here).
+ * Rows may arrive in any order. Rows with an unparseable date or a non-finite mood
+ * are skipped rather than throwing (degenerate data must never break the chart —
+ * an empty database and a half-imported one are both real code paths here).
  */
-export const latestEntryPerDay = (
+export const sortedEntriesPerDay = (
     rows: readonly EntryDetailRow[]
-): Map<string, LatestEntry> => {
+): Map<string, LatestEntry[]> => {
     // Track the winning instant per day so a later row can displace an earlier one.
-    const bestAt = new Map<string, number>();
-    const out = new Map<string, LatestEntry>();
+    const out = new Map<string, LatestEntry[]>();
 
     for (const row of rows ?? []) {
         if (!row || typeof row.date !== 'string') continue;
@@ -99,15 +97,19 @@ export const latestEntryPerDay = (
         if (typeof row.mood !== 'number' || !Number.isFinite(row.mood)) continue;
 
         const day = localDateString(row.date);
-        const current = bestAt.get(day);
-        if (current !== undefined && current >= t) continue;
+        var list = out.get(day);
+        if (!list) {
+            list = [];
+            out.set(day, list);
+        }
 
-        bestAt.set(day, t);
-        out.set(day, {
+        list.push({
             time: formatEntryTime(row.date),
             mood: row.mood,
             note: firstNoteLine(row.notes),
         });
+        // Sort the entries by time reversed: latest entry is first.
+        list.sort((a, b) => b.time.localeCompare(a.time));
     }
 
     return out;

@@ -49,7 +49,7 @@ const entry: LatestEntry = { time: '2:30 pm', mood: 7, note: 'went for a run' };
 describe('MoodTrendReadout — a logged day', () => {
     it('names the day, its average, and the entry behind it', async () => {
         const view = await render(
-            <MoodTrendReadout day={DAY} average={6.4} entry={entry} />
+            <MoodTrendReadout day={DAY} average={6.4} entries={entry} />
         );
         expect(view.queryByText(/Wed/)).not.toBeNull();
         expect(view.queryByText('Avg mood 6.4')).not.toBeNull();
@@ -59,7 +59,7 @@ describe('MoodTrendReadout — a logged day', () => {
 
     it('renders the mood line and nothing more when the entry has no note', async () => {
         const view = await render(
-            <MoodTrendReadout day={DAY} average={6.4} entry={{ ...entry, note: null }} />
+            <MoodTrendReadout day={DAY} average={6.4} entries={{ ...entry, note: null }} />
         );
         expect(view.queryByText('2:30 pm · mood 7.0')).not.toBeNull();
         expect(view.queryByText('went for a run')).toBeNull();
@@ -67,7 +67,7 @@ describe('MoodTrendReadout — a logged day', () => {
 
     it('still shows the average when the day has no entry detail to show', async () => {
         const view = await render(
-            <MoodTrendReadout day={DAY} average={5} entry={null} />
+            <MoodTrendReadout day={DAY} average={5} entries={null} />
         );
         expect(view.queryByText('Avg mood 5.0')).not.toBeNull();
         expect(view.queryByText(/mood 7/)).toBeNull();
@@ -77,7 +77,7 @@ describe('MoodTrendReadout — a logged day', () => {
 describe('MoodTrendReadout — a day with no entry', () => {
     it('says the point is interpolated, and shows NO average', async () => {
         const view = await render(
-            <MoodTrendReadout day={DAY} average={null} entry={null} />
+            <MoodTrendReadout day={DAY} average={null} entries={null} />
         );
         // The line still crosses this day (dashed). An interpolated crossing
         // must never be presented as a recorded mood.
@@ -89,10 +89,10 @@ describe('MoodTrendReadout — a day with no entry', () => {
 describe('MoodTrendReadout — variants agree', () => {
     it('the panel says exactly what the bubble says', async () => {
         const bubble = await render(
-            <MoodTrendReadout day={DAY} average={6.4} entry={entry} variant="bubble" />
+            <MoodTrendReadout day={DAY} average={6.4} entries={entry} variant="bubble" />
         );
         const panel = await render(
-            <MoodTrendReadout day={DAY} average={6.4} entry={entry} variant="panel" />
+            <MoodTrendReadout day={DAY} average={6.4} entries={entry} variant="panel" />
         );
         for (const text of ['Avg mood 6.4', '2:30 pm · mood 7.0', 'went for a run']) {
             expect(bubble.queryByText(text)).not.toBeNull();
