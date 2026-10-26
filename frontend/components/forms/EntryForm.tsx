@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemeColors, useThemeColors } from '@/styles/global';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
+import { VisibilitySensor } from '@futurejj/react-native-visibility-sensor';
 
 import { ActivitySelector } from './ActivitySelector';
 import MoodSelector from './MoodSelector';
@@ -29,6 +30,7 @@ import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { useEntryDraft, EntryDraft } from './hooks/useEntryDraft';
 import { selectPhotosToAdd } from './photoSelection';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MAX_PHOTOS = 5;
 
@@ -255,6 +257,7 @@ const DetailsStep = ({
     onRemovePhoto,
     onBack,
     onSubmit,
+    onButtonsVisibleChange,
     submitDisabled,
     submitBusy,
     scrollableRef,
@@ -270,6 +273,7 @@ const DetailsStep = ({
     onRemovePhoto: (uri: string) => void;
     onBack: () => void;
     onSubmit: () => void;
+    onButtonsVisibleChange: (visible: boolean) => void;
     submitDisabled?: boolean;
     /** In-flight save: the button is disabled AND announced busy. */
     submitBusy?: boolean;
@@ -305,26 +309,28 @@ const DetailsStep = ({
                 onRemove={onRemovePhoto}
             />
 
-            <View style={styles.buttonContainer}>
-                <Pressable
-                    style={[styles.navigationButton, styles.backButton]}
-                    onPress={onBack}
-                >
-                    <Text style={styles.buttonText}>Back</Text>
-                </Pressable>
-                <Pressable
-                    style={[
-                        styles.navigationButton,
-                        styles.submitButton,
-                        submitDisabled && styles.continueButtonDisabled,
-                    ]}
-                    onPress={onSubmit}
-                    disabled={submitDisabled}
-                    accessibilityState={{ disabled: !!submitDisabled, busy: !!submitBusy }}
-                >
-                    <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-            </View>
+            <VisibilitySensor onChange={onButtonsVisibleChange}>
+                <View style={styles.buttonContainer}>
+                    <Pressable
+                        style={[styles.navigationButton, styles.backButton]}
+                        onPress={onBack}
+                    >
+                        <Text style={styles.buttonText}>Back</Text>
+                    </Pressable>
+                    <Pressable
+                        style={[
+                            styles.navigationButton,
+                            styles.submitButton,
+                            submitDisabled && styles.continueButtonDisabled,
+                        ]}
+                        onPress={onSubmit}
+                        disabled={submitDisabled}
+                        accessibilityState={{ disabled: !!submitDisabled, busy: !!submitBusy }}
+                    >
+                        <Text style={styles.buttonText}>Submit</Text>
+                    </Pressable>
+                </View>
+            </VisibilitySensor>
         </>
     );
 };
@@ -340,7 +346,8 @@ const EntryFormOverlay: React.FC<{
     onSubmit: (data: EntryFormData) => Promise<void>;
 }> = ({ onClose, initialData, onSubmit }) => {
     const colors = useThemeColors();
-    const styles = useThemedStyles(colors);
+    const insets = useSafeAreaInsets();
+    const styles = useThemedStyles(colors, insets.top, insets.bottom);
 
     // Replicate <Modal onRequestClose>: Android hardware back closes the overlay
     // while it's up (and swallows the event so it doesn't pop the route under it).
@@ -362,7 +369,7 @@ const EntryFormOverlay: React.FC<{
                     <Ionicons name="close" color={colors.text} size={24} />
                 </Pressable>
 
-                <InfoBubble
+                <InfoBubble style={styles.infoBubble}
                     text="Hold an activity to edit or delete it"
                     position="top-right"
                 />
@@ -445,13 +452,26 @@ export const EntryForm: React.FC<EntryFormProps> = ({
     // edge-to-edge — without it the content fits the window exactly and there's
     // nothing to scroll, so the keyboard sits on top of the Notes field.
     const keyboardHeight = useKeyboardHeight();
-    const styles = useThemedStyles(colors);
+    const insets = useSafeAreaInsets();
+    const styles = useThemedStyles(colors, insets.top, insets.bottom);
     // Animated ref to the form's scroll container, threaded into the activity
     // drag-reorder grid so it can auto-scroll the form while a chip is dragged
     // near an edge (react-native-sortables scrollableRef). Its `.current` also
     // exposes the ScrollView's scrollToEnd, used to lift the Notes field above
     // the keyboard.
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
+
+    // Track whether the bottom buttons (Back + Submit) are visible in the viewport
+    // so the floating FAB can appear when they scroll out of view. VisibilitySensor
+    // is used instead of onLayout + scroll position because the latter is a pain
+    // to get right with the keyboard padding changing the scrollable height.
+    const [buttonsVisible, setButtonsVisible] = useState(true);
+
+    const { settings } = useSettings();
+    // `fab_position` honors the user's left/right preference. The settings
+    // registry constrains the value to `'left' | 'right'` so we don't risk
+    // injecting a runtime style key here.
+    const fabPosition = settings.fab_position;
 
     // submit() runs validation again before invoking onSubmit, so we never hit
     // the DB with a bad mood value - the pre-submit UI guard is duplicated by
@@ -489,50 +509,70 @@ export const EntryForm: React.FC<EntryFormProps> = ({
     }, [keyboardHeight, currentStep, scrollToBottom]);
 
     return (
-        <Animated.ScrollView
-            ref={scrollRef}
-            style={styles.scroll}
-            contentContainerStyle={[
-                styles.contentContainer,
-                // Extra bottom room == keyboard height so the last field can sit
-                // above the keyboard. 0 when hidden (no-op).
-                { paddingBottom: styles.contentContainer.paddingBottom + keyboardHeight },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-        >
-            {currentStep === 1 ? (
-                <MoodStep
-                    value={draft.mood}
-                    onChange={setMood}
-                    onContinue={() => setCurrentStep(2)}
-                    date={draft.date}
-                    onDateChange={setDate}
-                    moodError={validation.errors.mood}
-                />
-            ) : (
-                <DetailsStep
-                    activities={draft.activities}
-                    notes={draft.notes}
-                    photos={draft.photos}
-                    onToggleActivity={toggleActivity}
-                    onNotesChange={setNotes}
-                    onNotesFocus={scrollToBottom}
-                    onAddPhoto={addPhoto}
-                    onRemovePhoto={removePhoto}
-                    onBack={() => setCurrentStep(1)}
-                    onSubmit={handleSubmit}
-                    submitDisabled={!isValid || isSubmitting}
-                    submitBusy={isSubmitting}
-                    scrollableRef={scrollRef}
-                />
+        <>
+            <Animated.ScrollView
+                ref={scrollRef}
+                style={styles.scroll}
+                contentContainerStyle={styles.contentContainer}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator
+            >
+                {currentStep === 1 ? (
+                    <MoodStep
+                        value={draft.mood}
+                        onChange={setMood}
+                        onContinue={() => setCurrentStep(2)}
+                        date={draft.date}
+                        onDateChange={setDate}
+                        moodError={validation.errors.mood}
+                    />
+                ) : (
+                    <DetailsStep
+                        activities={draft.activities}
+                        notes={draft.notes}
+                        photos={draft.photos}
+                        onToggleActivity={toggleActivity}
+                        onNotesChange={setNotes}
+                        onNotesFocus={scrollToBottom}
+                        onAddPhoto={addPhoto}
+                        onRemovePhoto={removePhoto}
+                        onBack={() => setCurrentStep(1)}
+                        onSubmit={handleSubmit}
+                        onButtonsVisibleChange={(visible) => setButtonsVisible(visible)}
+                        submitDisabled={!isValid || isSubmitting}
+                        submitBusy={isSubmitting}
+                        scrollableRef={scrollRef}
+                    />
+                )}
+            </Animated.ScrollView>
+
+            {!buttonsVisible && currentStep === 2 && (
+                <>
+                    <Pressable
+                        style={[styles.floatingButton, { backgroundColor: colors.secondaryBackground, [fabPosition]: 16 }]}
+                        onPress={() => setCurrentStep(1)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back to the mood selection"
+                    >
+                        <Feather name="chevron-left" size={30} color={colors.text} />
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.floatingButton, styles.submitButton, { [fabPosition]: 70 }]}
+                        onPress={handleSubmit}
+                        accessibilityRole="button"
+                        accessibilityLabel="Submit the mood entry"
+                    >
+                        <Feather name="chevron-right" size={30} color={colors.text} />
+                    </Pressable>
+                </>
             )}
-        </Animated.ScrollView>
+        </>
     );
 };
 
 // Styles
-const useThemedStyles = (colors: ThemeColors) =>
+const useThemedStyles = (colors: ThemeColors, insetTop: number = 16, insetBottom: number = 0) =>
     StyleSheet.create({
         modalContainer: {
             // Rendered as an in-tree overlay (StyleSheet.absoluteFill, applied at
@@ -540,9 +580,10 @@ const useThemedStyles = (colors: ThemeColors) =>
             // so no explicit Dimensions sizing is needed (that was the old native
             // <Modal> Fabric flex-collapse workaround, gone with the Modal).
             backgroundColor: colors.background,
-            paddingTop: 16,
+            paddingHorizontal: 20,            
         },
         modalHeader: {
+            paddingTop: insetTop + 8,
             paddingHorizontal: 12,
             flexDirection: 'row',
             justifyContent: 'flex-start',
@@ -551,6 +592,12 @@ const useThemedStyles = (colors: ThemeColors) =>
         closeButton: {
             padding: 8,
         },
+        infoBubble: {
+            paddingTop: insetTop + 8,
+            paddingLeft: 8,
+            paddingRight: 8,
+            paddingBottom: 8,
+        },        
         scroll: {
             flex: 1,
         },
@@ -560,8 +607,8 @@ const useThemedStyles = (colors: ThemeColors) =>
             // guarantees the Continue/Submit button is always reachable on small
             // screens. Vertical padding gives breathing room at both ends.
             flexGrow: 1,
-            paddingTop: 8,
-            paddingBottom: 24,
+            paddingTop: insetTop + 8,
+            paddingBottom: insetBottom + 24,
             alignItems: 'center',
             justifyContent: 'center',
             paddingHorizontal: 20,
@@ -594,6 +641,22 @@ const useThemedStyles = (colors: ThemeColors) =>
             justifyContent: 'space-between',
             width: '100%',
             marginTop: 20,
+        },
+        floatingButton: {
+            position: 'absolute',
+            bottom: insetBottom + 18,
+            zIndex: 1000,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+            // Theme-aware shadow for visual depth.
+            shadowColor: colors.elevation.shadowColor,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: colors.elevation.shadowOpacity + 0.05,
+            shadowRadius: colors.elevation.shadowRadius,
+            elevation: colors.elevation.elevation + 2,
         },
         navigationButton: {
             flex: 1,
