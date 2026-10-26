@@ -199,6 +199,7 @@ const MoodStep = ({
     value,
     onChange,
     onContinue,
+    onCancel,
     date,
     onDateChange,
     moodError,
@@ -206,6 +207,7 @@ const MoodStep = ({
     value: number;
     onChange: (mood: number) => void;
     onContinue: () => void;
+    onCancel: () => void;
     date: Date;
     onDateChange: (date: Date) => void;
     moodError?: string;
@@ -234,14 +236,27 @@ const MoodStep = ({
                 </Text>
             ) : null}
 
-            <Pressable
-                style={[styles.continueButton, !!moodError && styles.continueButtonDisabled]}
-                onPress={onContinue}
-                accessibilityState={{ disabled: !!moodError }}
-                disabled={!!moodError}
-            >
-                <Text style={styles.continueButtonText}>Continue</Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+                <Pressable
+                    style={[styles.navigationButton, styles.cancelButton]}
+                    onPress={onCancel}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel editing or adding the entry"
+                >
+                    <Text style={styles.buttonText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                    style={[styles.navigationButton, styles.continueButton, !!moodError && styles.continueButtonDisabled]}
+                    onPress={onContinue}
+                    accessibilityState={{ disabled: !!moodError }}
+                    disabled={!!moodError}
+                    accessibilityRole="button"
+                    accessibilityLabel="Continue to the details step"
+                >
+                    <Text style={styles.continueButtonText}>Continue</Text>
+                </Pressable>
+            </View>
         </>
     );
 };
@@ -522,6 +537,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({
                         value={draft.mood}
                         onChange={setMood}
                         onContinue={() => setCurrentStep(2)}
+                        onCancel={_onCancel}
                         date={draft.date}
                         onDateChange={setDate}
                         moodError={validation.errors.mood}
@@ -676,13 +692,11 @@ const useThemedStyles = (colors: ThemeColors, insetTop: number = 16, insetBottom
             fontSize: 16,
             fontWeight: '600',
         },
+        cancelButton: {
+            backgroundColor: colors.overlays.tag,
+        },
         continueButton: {
             backgroundColor: colors.accent,
-            margin: 20,
-            padding: 15,
-            borderRadius: 25,
-            alignItems: 'center',
-            width: '100%',
         },
         continueButtonDisabled: {
             opacity: 0.5,
