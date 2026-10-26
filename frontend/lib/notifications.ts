@@ -43,6 +43,17 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type * as NotificationsModule from 'expo-notifications';
 
 /**
+ * A lightweight object representing a triggered notification response.
+ */
+export interface Notification {
+  identifier: string;
+  actionIdentifier: string;
+  userText: string | undefined;
+  title: string | null;
+  body: string | null;
+}
+
+/**
  * True in Expo Go on Android, where expo-notifications' native module is
  * STRIPPED (SDK 53+). `Constants.executionEnvironment === 'storeClient'`
  * identifies the Expo Go client; standalone/bare (real dev-client + release
@@ -147,6 +158,26 @@ export async function ensureAndroidChannel(): Promise<void> {
     lightColor: '#4CAF50',
     sound: null, // silent channel — a mood reminder shouldn't blare
   });
+}
+
+/**
+ * Register a listener that is called when the user interacts with a notification.
+ */
+export function addNotificationResponseReceivedListener(handler: (notification: Notification) => void): () => void {
+  const Notifications = getNotifications();
+  if (!Notifications) return () => {};
+
+  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    // Build wrapped notification object with the properties we care about and
+    // pass that to the handler function.
+    const request = response.notification.request;
+    handler({identifier: request.identifier,actionIdentifier: response.actionIdentifier,
+      userText: response.userText, title: request.content.title, body: request.content.body});
+
+    // Dismiss all pending notifications when any one is tapped.
+    Notifications.dismissAllNotificationsAsync();
+  });
+  return () => subscription.remove();
 }
 
 // ─── Permission ───────────────────────────────────────────────────────────────

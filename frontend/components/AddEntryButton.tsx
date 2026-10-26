@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, Pressable, Alert } from 'react-native';
 import Animated, {
     useAnimatedStyle,
@@ -14,6 +14,9 @@ import { addMoodEntry } from '@/databases/database';
 import { useSettings } from '@/context/SettingsContext';
 import * as SQLite from 'expo-sqlite';
 import { EntryFormData, EntryFormModal } from './forms/EntryForm';
+import { addNotificationResponseReceivedListener } from '@/lib/notifications';
+import { useFocusEffect } from 'expo-router/build/react-navigation';
+
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -29,6 +32,16 @@ export function AddEntryButton() {
     const [modalVisible, setModalVisible] = useState(false);
     const { refetchEntries } = useDataContext();
     const { settings } = useSettings();
+
+    // Add handler for notification responses (taps).
+    // When the user taps a notification, open the entry form.
+    useFocusEffect(
+        useCallback(() => {
+            return addNotificationResponseReceivedListener((_) => {
+                setModalVisible(true);
+            });
+        }, [])
+    );
 
     // `fab_position` honors the user's left/right preference. The settings
     // registry constrains the value to `'left' | 'right'` so we don't risk
