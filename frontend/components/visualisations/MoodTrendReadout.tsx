@@ -20,7 +20,7 @@ export type MoodTrendReadoutProps = {
     /** That day's average mood, or null when nothing was logged. */
     average: number | null;
     /** The day's most recent entry, or null when there is none. */
-    entry: LatestEntry | null;
+    entries: LatestEntry[] | null;
     /** `'panel'` gets more room to breathe than the floating `'bubble'`. */
     variant?: 'bubble' | 'panel';
 };
@@ -31,7 +31,7 @@ const formatMood = (mood: number): string => mood.toFixed(1);
 export const MoodTrendReadout: React.FC<MoodTrendReadoutProps> = ({
     day,
     average,
-    entry,
+    entries,
     variant = 'bubble',
 }) => {
     const colors = useThemeColors();
@@ -93,30 +93,34 @@ export const MoodTrendReadout: React.FC<MoodTrendReadoutProps> = ({
                 <Text style={styles.average}>Avg mood {formatMood(average)}</Text>
             )}
 
-            {entry && (
+            {entries && entries.length > 0 && (
                 <>
-                    <View style={styles.entryRow}>
-                        <View
-                            style={[
-                                styles.swatch,
-                                {
-                                    backgroundColor: moodColor(
-                                        entry.mood,
-                                        colors.accent,
-                                        colors.overlays.tag
-                                    ),
-                                },
-                            ]}
-                        />
-                        <Text style={styles.entryText} numberOfLines={1}>
-                            {entry.time} · mood {formatMood(entry.mood)}
-                        </Text>
-                    </View>
-                    {entry.note && (
-                        <Text style={styles.note} numberOfLines={panel ? 2 : 1}>
-                            {entry.note}
-                        </Text>
-                    )}
+                {entries.map((entry: LatestEntry, index: number) => (
+                    <>
+                        <View key={index} style={styles.entryRow}>
+                            <View
+                                style={[
+                                    styles.swatch,
+                                    {
+                                        backgroundColor: moodColor(
+                                            entry.mood,
+                                            colors.accent,
+                                            colors.overlays.tag
+                                        ),
+                                    },
+                                ]}
+                            />
+                            <Text style={styles.entryText} numberOfLines={1}>
+                                {entry.time} · mood {formatMood(entry.mood)}
+                            </Text>
+                        </View>
+                        {entry.note && (
+                            <Text style={styles.note} numberOfLines={panel ? 2 : 1}>
+                                {entry.note}
+                            </Text>
+                        )}
+                    </>
+                ))}
                 </>
             )}
         </View>
