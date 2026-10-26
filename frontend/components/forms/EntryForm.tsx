@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemeColors, useThemeColors } from '@/styles/global';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
+import { VisibilitySensor } from '@futurejj/react-native-visibility-sensor';
 
 import { ActivitySelector } from './ActivitySelector';
 import MoodSelector from './MoodSelector';
@@ -256,6 +257,7 @@ const DetailsStep = ({
     onRemovePhoto,
     onBack,
     onSubmit,
+    onButtonsVisibleChange,
     submitDisabled,
     submitBusy,
     scrollableRef,
@@ -271,6 +273,7 @@ const DetailsStep = ({
     onRemovePhoto: (uri: string) => void;
     onBack: () => void;
     onSubmit: () => void;
+    onButtonsVisibleChange: (visible: boolean) => void;
     submitDisabled?: boolean;
     /** In-flight save: the button is disabled AND announced busy. */
     submitBusy?: boolean;
@@ -306,26 +309,28 @@ const DetailsStep = ({
                 onRemove={onRemovePhoto}
             />
 
-            <View style={styles.buttonContainer}>
-                <Pressable
-                    style={[styles.navigationButton, styles.backButton]}
-                    onPress={onBack}
-                >
-                    <Text style={styles.buttonText}>Back</Text>
-                </Pressable>
-                <Pressable
-                    style={[
-                        styles.navigationButton,
-                        styles.submitButton,
-                        submitDisabled && styles.continueButtonDisabled,
-                    ]}
-                    onPress={onSubmit}
-                    disabled={submitDisabled}
-                    accessibilityState={{ disabled: !!submitDisabled, busy: !!submitBusy }}
-                >
-                    <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-            </View>
+            <VisibilitySensor onChange={onButtonsVisibleChange}>
+                <View style={styles.buttonContainer}>
+                    <Pressable
+                        style={[styles.navigationButton, styles.backButton]}
+                        onPress={onBack}
+                    >
+                        <Text style={styles.buttonText}>Back</Text>
+                    </Pressable>
+                    <Pressable
+                        style={[
+                            styles.navigationButton,
+                            styles.submitButton,
+                            submitDisabled && styles.continueButtonDisabled,
+                        ]}
+                        onPress={onSubmit}
+                        disabled={submitDisabled}
+                        accessibilityState={{ disabled: !!submitDisabled, busy: !!submitBusy }}
+                    >
+                        <Text style={styles.buttonText}>Submit</Text>
+                    </Pressable>
+                </View>
+            </VisibilitySensor>
         </>
     );
 };
@@ -456,6 +461,18 @@ export const EntryForm: React.FC<EntryFormProps> = ({
     // the keyboard.
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
+    // Track whether the bottom buttons (Back + Submit) are visible in the viewport
+    // so the floating FAB can appear when they scroll out of view. VisibilitySensor
+    // is used instead of onLayout + scroll position because the latter is a pain
+    // to get right with the keyboard padding changing the scrollable height.
+    const [buttonsVisible, setButtonsVisible] = useState(true);
+
+    const { settings } = useSettings();
+    // `fab_position` honors the user's left/right preference. The settings
+    // registry constrains the value to `'left' | 'right'` so we don't risk
+    // injecting a runtime style key here.
+    const fabPosition = settings.fab_position;
+
     // submit() runs validation again before invoking onSubmit, so we never hit
     // the DB with a bad mood value - the pre-submit UI guard is duplicated by
     // the hook for safety.
@@ -492,40 +509,65 @@ export const EntryForm: React.FC<EntryFormProps> = ({
     }, [keyboardHeight, currentStep, scrollToBottom]);
 
     return (
-        <Animated.ScrollView
-            ref={scrollRef}
-            style={styles.scroll}
-            contentContainerStyle={styles.contentContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-        >
-            {currentStep === 1 ? (
-                <MoodStep
-                    value={draft.mood}
-                    onChange={setMood}
-                    onContinue={() => setCurrentStep(2)}
-                    date={draft.date}
-                    onDateChange={setDate}
-                    moodError={validation.errors.mood}
-                />
-            ) : (
-                <DetailsStep
-                    activities={draft.activities}
-                    notes={draft.notes}
-                    photos={draft.photos}
-                    onToggleActivity={toggleActivity}
-                    onNotesChange={setNotes}
-                    onNotesFocus={scrollToBottom}
-                    onAddPhoto={addPhoto}
-                    onRemovePhoto={removePhoto}
-                    onBack={() => setCurrentStep(1)}
-                    onSubmit={handleSubmit}
-                    submitDisabled={!isValid || isSubmitting}
-                    submitBusy={isSubmitting}
-                    scrollableRef={scrollRef}
-                />
+        <>
+            <Animated.ScrollView
+                ref={scrollRef}
+                style={styles.scroll}
+                contentContainerStyle={styles.contentContainer}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator
+            >
+                {currentStep === 1 ? (
+                    <MoodStep
+                        value={draft.mood}
+                        onChange={setMood}
+                        onContinue={() => setCurrentStep(2)}
+                        date={draft.date}
+                        onDateChange={setDate}
+                        moodError={validation.errors.mood}
+                    />
+                ) : (
+                    <DetailsStep
+                        activities={draft.activities}
+                        notes={draft.notes}
+                        photos={draft.photos}
+                        onToggleActivity={toggleActivity}
+                        onNotesChange={setNotes}
+                        onNotesFocus={scrollToBottom}
+                        onAddPhoto={addPhoto}
+                        onRemovePhoto={removePhoto}
+                        onBack={() => setCurrentStep(1)}
+                        onSubmit={handleSubmit}
+                        onButtonsVisibleChange={(visible) => setButtonsVisible(visible)}
+                        submitDisabled={!isValid || isSubmitting}
+                        submitBusy={isSubmitting}
+                        scrollableRef={scrollRef}
+                    />
+                )}
+            </Animated.ScrollView>
+
+            {!buttonsVisible && currentStep === 2 && (
+                <>
+                    <Pressable
+                        style={[styles.floatingButton, { backgroundColor: colors.secondaryBackground, [fabPosition]: 16 }]}
+                        onPress={() => setCurrentStep(1)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back to the mood selection"
+                    >
+                        <Feather name="chevron-left" size={30} color={colors.text} />
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.floatingButton, styles.submitButton, { [fabPosition]: 70 }]}
+                        onPress={handleSubmit}
+                        accessibilityRole="button"
+                        accessibilityLabel="Submit the mood entry"
+                    >
+                        <Feather name="chevron-right" size={30} color={colors.text} />
+                    </Pressable>
+                </>
             )}
-        </Animated.ScrollView>
+        </>
     );
 };
 
@@ -599,6 +641,22 @@ const useThemedStyles = (colors: ThemeColors, insetTop: number = 16, insetBottom
             justifyContent: 'space-between',
             width: '100%',
             marginTop: 20,
+        },
+        floatingButton: {
+            position: 'absolute',
+            bottom: 24,
+            zIndex: 1000,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+            // Theme-aware shadow for visual depth.
+            shadowColor: colors.elevation.shadowColor,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: colors.elevation.shadowOpacity + 0.05,
+            shadowRadius: colors.elevation.shadowRadius,
+            elevation: colors.elevation.elevation + 2,
         },
         navigationButton: {
             flex: 1,
