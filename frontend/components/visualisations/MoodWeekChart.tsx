@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { useThemeColors } from '@/styles/global';
 import { moodColor } from '@/components/timeline/moodColor';
 import {
@@ -53,6 +53,7 @@ export const MoodWeekChart: React.FC<MoodWeekChartProps> = ({
 }) => {
     const colors = useThemeColors();
     const [width, setWidth] = useState(0);
+    const negativeColor = colors.isDark ? '#FF8A80' : '#E57373';
 
     const styles = useMemo(
         () =>
@@ -99,6 +100,8 @@ export const MoodWeekChart: React.FC<MoodWeekChartProps> = ({
     );
 
     const geo = useMemo(() => buildChartGeometry(data, dims), [data, dims]);
+    const grid = useMemo(() => [0, 2, 4, 6, 8, 10].map((value) =>
+            ({y: Math.round((height - value * height / 10) * 10) / 10, label: value.toString()})), [height]);
 
     // Dot colors come from the canonical mood ramp so the chart matches the
     // timeline/heatmap. The accent drives the line + area gradient.
@@ -121,6 +124,22 @@ export const MoodWeekChart: React.FC<MoodWeekChartProps> = ({
                                 <Stop offset="1" stopColor={accent} stopOpacity={0} />
                             </LinearGradient>
                         </Defs>
+
+                        {/* Gridlines. */}
+                        {grid.map((g) => (
+                            <React.Fragment key={`grid-${g.label}`}>
+                                <Line
+                                    accessibilityLabel={g.label}
+                                    x1={0}
+                                    y1={g.y}
+                                    x2={width}
+                                    y2={g.y}
+                                    stroke={Number.parseInt(g.label) <= 4 ? negativeColor : colors.border}
+                                    strokeOpacity={0.8}
+                                    strokeWidth={1.3}
+                                />
+                            </React.Fragment>
+                        ))}                    
 
                         {/* Subtle area fill under the solid line. */}
                         {geo.areaPath ? (

@@ -9,7 +9,7 @@ import {
     type DimensionValue,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { Svg, Polyline } from 'react-native-svg';
+import { Svg, Polyline, Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
 
@@ -44,7 +44,7 @@ type FeatherName = React.ComponentProps<typeof Feather>['name'];
 
 /** Minimum distinct logged days before the optional trend sparkline is worth it. */
 const MIN_TREND_DAYS = 6;
-const SPARK_HEIGHT = 48;
+const SPARK_HEIGHT = 100;
 const HISTOGRAM_HEIGHT = 132;
 
 type EntryRow = { id: number; date: string; mood: number };
@@ -78,12 +78,12 @@ export const ActivityInsightsDetail: React.FC<{
     onClose: () => void;
 }> = ({ activity, onClose }) => {
     const colors = useThemeColors();
+    const styles = useThemedStyles(colors);
     const { format } = useDateFormat();
     /** "18 Sep 2026" in the user's chosen order (setting `date_format`). */
     const fmtDate = (iso: string): string => format(iso, 'medium');
     const insets = useSafeAreaInsets();
     const db = useSQLiteContext();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [data, setData] = useState<DetailData | null>(null);
 
     const load = useCallback(() => {
@@ -409,8 +409,11 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
     color,
     styles,
 }) => {
+    const colors = useThemeColors();
+    const negativeColor = colors.isDark ? '#FF8A80' : '#E57373';
     const [width, setWidth] = useState(0);
     const points = sparklinePoints(values, width, SPARK_HEIGHT);
+    const grid =[0, 2, 4, 6, 8, 10].map((value) =>({y: Math.round((SPARK_HEIGHT - value * SPARK_HEIGHT / 10) * 10) / 10, label: value.toString()}));
     const pointsStr = points.map((p) => `${p.x},${p.y}`).join(' ');
     return (
         <View
@@ -423,6 +426,20 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
         >
             {width > 0 && points.length > 1 && (
                 <Svg width={width} height={SPARK_HEIGHT}>
+                    {grid.map((g) => (
+                        <React.Fragment key={`grid-${g.label}`}>
+                            <Line
+                                accessibilityLabel={g.label}
+                                x1={0}
+                                y1={g.y}
+                                x2={width}
+                                y2={g.y}
+                                stroke={Number.parseInt(g.label) <= 4 ? negativeColor : colors.border}
+                                strokeOpacity={0.8}
+                                strokeWidth={1.3}
+                            />
+                        </React.Fragment>
+                    ))}
                     <Polyline
                         points={pointsStr}
                         fill="none"
@@ -437,9 +454,9 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
     );
 };
 
-type Styles = ReturnType<typeof makeStyles>;
+type Styles = ReturnType<typeof useThemedStyles>;
 
-const makeStyles = (colors: ThemeColors) =>
+const useThemedStyles = (colors: ThemeColors) => useMemo(() =>
     StyleSheet.create({
         screen: {
             flex: 1,
@@ -650,6 +667,6 @@ const makeStyles = (colors: ThemeColors) =>
             color: colors.textSecondary,
             textAlign: 'center',
         },
-    });
+    }), [colors]);
 
 export default ActivityInsightsDetail;
