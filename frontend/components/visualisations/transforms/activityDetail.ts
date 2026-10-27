@@ -231,14 +231,18 @@ export const activityMoodImpact = (
     allEntries: InstantValueRow[],
     activityEntries: InstantValueRow[],
     minSamples: number = MIN_SAMPLES,
+    perEntry: boolean = false,
 ): ActivityMoodImpact => {
-    const dayAvg = dailyAverageMap(allEntries); // Map<localDay, avgMood>
+    const dayAvg = !perEntry ? dailyAverageMap(allEntries) : new Map(allEntries.map((e) => [e.date, e.mood])); // Map<localDay, avgMood>
 
     const withDaySet = new Set<string>();
     for (const row of activityEntries ?? []) {
         if (!row || typeof row.date !== 'string') continue;
         if (Number.isNaN(new Date(row.date).getTime())) continue;
-        withDaySet.add(localDateString(row.date));
+        if (!perEntry)
+            withDaySet.add(localDateString(row.date));
+        else
+            withDaySet.add(row.date);
     }
 
     let sumWith = 0;
@@ -278,9 +282,11 @@ export const activityMoodImpact = (
 export type ActivityTrendPoint = { day: string; avg: number };
 
 export const moodTrendForActivity = (
-    rows: InstantValueRow[],
+    rows: InstantValueRow[], perEntry: boolean
 ): ActivityTrendPoint[] =>
-    aggregateDailyAverages(rows).map((d) => ({ day: d.day, avg: d.avg }));
+    !perEntry
+        ? aggregateDailyAverages(rows).map((d) => ({ day: d.day, avg: d.avg }))
+        : rows.map((d) => ({ day: d.date, avg: d.mood }));
 
 /**
  * Map trend values to sparkline pixel coordinates. Pure path math (per the
