@@ -9,7 +9,7 @@ import {
     type DimensionValue,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { Svg, Polyline } from 'react-native-svg';
+import { Svg, Polyline, Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
 
@@ -410,6 +410,7 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
 }) => {
     const [width, setWidth] = useState(0);
     const points = sparklinePoints(values, width, SPARK_HEIGHT);
+    const grid =[0, 2, 4, 6, 8, 10].map((value) =>({y: Math.round((SPARK_HEIGHT - value * SPARK_HEIGHT / 10) * 10) / 10, label: value.toString()}));
     const pointsStr = points.map((p) => `${p.x},${p.y}`).join(' ');
     return (
         <View
@@ -422,6 +423,20 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
         >
             {width > 0 && points.length > 1 && (
                 <Svg width={width} height={SPARK_HEIGHT}>
+                    {grid.map((g) => (
+                        <React.Fragment key={`grid-${g.label}`}>
+                            <Line
+                                accessibilityLabel={g.label}
+                                x1={0}
+                                y1={g.y}
+                                x2={width}
+                                y2={g.y}
+                                stroke="lightgray"
+                                strokeOpacity={0.6}
+                                strokeWidth={1}
+                            />
+                        </React.Fragment>
+                    ))}                    
                     <Polyline
                         points={pointsStr}
                         fill="none"
