@@ -25,6 +25,7 @@ import { Activity } from '@/components/types';
 import ActivityInsightsDetail from '@/components/ActivityInsightsDetail';
 import { OverlayModal } from '@/components/OverlayModal';
 import { IconFamilyType } from '@/components/iconRegistry';
+import RecoveryAnalysis from '@/components/visualisations/RecoveryPatterns';
 
 // Screen-level error boundary (expo-router convention): re-exporting a symbol
 // named `ErrorBoundary` makes expo-router wrap THIS screen in
@@ -590,6 +591,7 @@ export default function Home() {
                     View (no FlatList) so it composes safely inside Home's
                     ScrollView (no nested virtualization). */}
                 <ActivityExplorer />
+                <RecoveryAnalysis />
             </View>
         </Layout>
     );
