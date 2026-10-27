@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeColors, ThemeColors } from '@/styles/global';
@@ -21,6 +21,10 @@ import { dailyAverageMap } from '@/components/visualisations/transforms/dailyAve
 import { todaysMoodValue, monthlyOverview, formatAverageDisplay } from '@/components/visualisations/transforms/homeSummary';
 import { loadStreakStats } from '@/components/visualisations/loadStreakStats';
 import ActivityExplorer from '@/components/ActivityExplorer';
+import { Activity } from '@/components/types';
+import ActivityInsightsDetail from '@/components/ActivityInsightsDetail';
+import { OverlayModal } from '@/components/OverlayModal';
+import { IconFamilyType } from '@/components/iconRegistry';
 
 // Screen-level error boundary (expo-router convention): re-exporting a symbol
 // named `ErrorBoundary` makes expo-router wrap THIS screen in
@@ -38,9 +42,10 @@ export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorFa
 
 /** A top-activity row for the "Recent activities" card — name + its real icon. */
 type RecentActivity = {
+    id: number;
     name: string;
     icon_name: string;
-    icon_family: string;
+    icon_family: IconFamilyType;
 };
 
 
@@ -241,6 +246,7 @@ const FirstEntryNudge = memo(function FirstEntryNudge() {
 const RecentActivitiesCard = memo(function RecentActivitiesCard({ activities }: { activities: RecentActivity[] }) {
     const colors = useThemeColors();
     const styles = useThemedStyles(colors);
+    const [selected, setSelected] = useState<Activity | null>(null);
 
     if (activities.length === 0) return null;
 
@@ -249,21 +255,41 @@ const RecentActivitiesCard = memo(function RecentActivitiesCard({ activities }: 
             <Text style={styles.cardTitle}>Recent activities</Text>
             <View style={styles.activitiesContainer}>
                 {activities.map((activity, index) => (
-                    <View key={`${activity.name}-${index}`} style={styles.activityUnit}>
-                        <View style={styles.activityChip}>
-                            <ActivityIcon
-                                iconName={activity.icon_name}
-                                iconFamily={activity.icon_family}
-                                color={colors.accent}
-                                size={15}
-                            />
+                    <Pressable
+                        key={activity.id}
+                        onPress={() => setSelected({...activity, group_id: 0, position: 0})}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${activity.name} insights`}
+                    >
+                        <View key={`${activity.name}-${index}`} style={styles.activityUnit}>
+                            <View style={styles.activityChip}>
+                                <ActivityIcon
+                                    iconName={activity.icon_name}
+                                    iconFamily={activity.icon_family}
+                                    color={colors.accent}
+                                    size={15}
+                                />
+                            </View>
+                            <Text style={styles.activityText} numberOfLines={1}>
+                                {activity.name}
+                            </Text>
                         </View>
-                        <Text style={styles.activityText} numberOfLines={1}>
-                            {activity.name}
-                        </Text>
-                    </View>
+                   </Pressable>
                 ))}
             </View>
+
+            <OverlayModal
+                visible={selected !== null}
+                onClose={() => setSelected(null)}
+                fullScreen
+            >
+                {selected && (
+                    <ActivityInsightsDetail
+                        activity={selected}
+                        onClose={() => setSelected(null)}
+                    />
+                )}
+            </OverlayModal>            
         </Card>
     );
 });
@@ -465,13 +491,14 @@ export default function Home() {
                     ),
 
                     db.getAllAsync<{
+                        id: number,
                         name: string;
                         icon_name: string;
-                        icon_family: string;
+                        icon_family: IconFamilyType;
                         count: number;
                     }>(
                         `
-                        SELECT a.name, a.icon_name, a.icon_family, COUNT(*) as count
+                        SELECT a.id, a.name, a.icon_name, a.icon_family, COUNT(*) as count
                         FROM activities a
                         JOIN entry_activities ea ON ea.activity_id = a.id
                         JOIN entries e ON e.id = ea.entry_id
@@ -510,6 +537,7 @@ export default function Home() {
 
                 setRecentActivities(
                     activities.map((a) => ({
+                        id: a.id,
                         name: a.name,
                         icon_name: a.icon_name,
                         icon_family: a.icon_family,
