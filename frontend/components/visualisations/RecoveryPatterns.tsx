@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Card } from '@/components/Card';
@@ -85,12 +85,12 @@ const RecoveryAnalysis = () => {
 
   const run = useCallback(async () => {
       try {
-        // Last 30 days of entries with activity names. The lower bound is now a
-        // parameterised LOCAL-time UTC ISO string (start of 30 days ago in the
-        // user's timezone) rather than SQLite's UTC date('now', '-30 days'),
+        // Last 90 days of entries with activity names. The lower bound is now a
+        // parameterised LOCAL-time UTC ISO string (start of 90 days ago in the
+        // user's timezone) rather than SQLite's UTC date('now', '-90 days'),
         // which silently dropped late-evening entries for users east of UTC.
         const start = startOfLocalDay(
-          addDays(localDateString(new Date()), -30)
+          addDays(localDateString(new Date()), -90)
         );
         const entries = await db.getAllAsync<MoodActivityRow>(`
           WITH MoodActivities AS (
@@ -103,7 +103,7 @@ const RecoveryAnalysis = () => {
             LEFT JOIN activities a ON ea.activity_id = a.id
             WHERE e.deleted_at IS NULL AND e.date >= ?
             GROUP BY e.date
-            ORDER BY e.date DESC
+            ORDER BY e.date ASC
           )
           SELECT * FROM MoodActivities
         `, [start]);
@@ -130,17 +130,19 @@ const RecoveryAnalysis = () => {
       <Text style={styles.title}>Recovery Analysis</Text>
       
       {currentEpisode && (
-        <View style={styles.currentEpisode}>
+        <View style={styles.history}>
           <Text style={styles.subtitle}>Current Recovery Episode</Text>
-          <Text style={styles.text}>
-            Started: {formatDate(currentEpisode.startDate, 'numeric')}
-          </Text>
-          <Text style={styles.text}>
-            Duration: {currentEpisode.durationDays} days
-          </Text>
-          <Text style={styles.text}>
-            Progress: {currentEpisode.startMood.toFixed(1)} → {currentEpisode.currentMood.toFixed(1)}
-          </Text>
+          <View style={styles.currentEpisode}>
+            <Text style={styles.text}>
+              Started: {formatDate(currentEpisode.startDate, 'numeric')}
+            </Text>
+            <Text style={styles.text}>
+              Duration: {currentEpisode.durationDays} days
+            </Text>
+            <Text style={styles.text}>
+              Mood, worst to latest: {currentEpisode.worstMood.toFixed(1)} → {currentEpisode.currentMood.toFixed(1)}
+            </Text>
+          </View>
         </View>
       )}
 
@@ -161,14 +163,16 @@ const RecoveryAnalysis = () => {
       {historicalEpisodes.length > 0 && (
         <View style={styles.history}>
           <Text style={styles.subtitle}>Recent Episodes</Text>
-          {historicalEpisodes.slice(0, 3).map((episode, index) => (
+          {historicalEpisodes.slice(0, 5).map((episode, index) => (
             <View key={index} style={styles.episodeItem}>
               <Text style={styles.text}>
-                {formatDate(episode.startDate, 'numeric')} - 
-                {episode.endDate ? formatDate(episode.endDate, 'numeric') : 'Ongoing'}
+                {formatDate(episode.startDate, 'numeric')} – {episode.endDate ? formatDate(episode.endDate, 'numeric') : 'Ongoing'}
               </Text>
               <Text style={styles.text}>
                 Duration: {episode.durationDays} days
+              </Text>
+              <Text style={styles.text}>
+                Mood, worst to latest: {episode.worstMood.toFixed(1)} → {episode.currentMood.toFixed(1)}
               </Text>
             </View>
           ))}

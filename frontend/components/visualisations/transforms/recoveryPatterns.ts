@@ -7,6 +7,7 @@
 //   - The detection logic can be unit-tested with synthetic series.
 //   - The component stays a thin renderer.
 //   - The <2-data-point edge case (which crashed before) is handled here.
+import { daysBetween } from "./dateHelpers";
 
 export const RECOVERY_THRESHOLD = 6.0;
 export const DIP_THRESHOLD = 4.0;
@@ -22,7 +23,7 @@ export type MoodActivityRow = {
 export type RecoveryEpisode = {
     startDate: string;
     endDate: string | null;
-    startMood: number;
+    worstMood: number;
     currentMood: number;
     durationDays: number;
     recovered: boolean;
@@ -55,56 +56,53 @@ export const analyseRecoveryPatterns = (
 
     const episodes: RecoveryEpisode[] = [];
     let currentEp: RecoveryEpisode | null = null;
+    let startOfRecovery: string | null = null;
 
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
+    for (const entry of entries) {
         const mood = entry.mood;
 
-        if (typeof mood !== 'number' || !Number.isFinite(mood)) {
-            continue;
-        }
+        if (!entry || typeof entry.date !== 'string') continue;
+        if (typeof mood !== 'number' || !Number.isFinite(mood)) continue;
+        const t = new Date(entry.date).getTime();
+        if (Number.isNaN(t)) continue;
 
         if (!currentEp && mood <= DIP_THRESHOLD) {
             currentEp = {
                 startDate: entry.date,
                 endDate: null,
-                startMood: mood,
+                worstMood: mood,
                 currentMood: mood,
                 durationDays: 0,
                 recovered: false,
             };
-        } else if (currentEp) {
-            currentEp.durationDays++;
+            startOfRecovery = null;
+        } else if (currentEp && mood >= RECOVERY_THRESHOLD) {
             currentEp.currentMood = mood;
-
-            if (mood >= RECOVERY_THRESHOLD) {
-                let sustained = true;
-                for (
-                    let j = 1;
-                    j < MIN_RECOVERY_DAYS && i + j < entries.length;
-                    j++
-                ) {
-                    if (entries[i + j].mood < RECOVERY_THRESHOLD) {
-                        sustained = false;
-                        break;
-                    }
-                }
-                // Guard the case where we don't have enough lookahead to
-                // verify sustained recovery — keep the episode open.
-                const haveEnoughLookahead =
-                    i + (MIN_RECOVERY_DAYS - 1) < entries.length;
-
-                if (sustained && haveEnoughLookahead) {
-                    currentEp.recovered = true;
-                    currentEp.endDate = entry.date;
-                    episodes.push(currentEp);
-                    currentEp = null;
-                }
+            currentEp.durationDays = daysBetween(currentEp.startDate, entry.date);
+            if (startOfRecovery == null) {
+                startOfRecovery = entry.date;
+                continue;
             }
+
+            const recoveryDays = daysBetween(startOfRecovery, entry.date);
+            if (recoveryDays >= MIN_RECOVERY_DAYS) {
+                currentEp.recovered = true;
+                currentEp.endDate = entry.date;
+                episodes.push(currentEp);
+                currentEp = null;
+                startOfRecovery = null;
+            }
+        }
+        else if (currentEp) {
+            if (mood < currentEp.worstMood)
+                currentEp.worstMood = mood;
+            currentEp.durationDays = daysBetween(currentEp.startDate, entry.date);
+            currentEp.currentMood = mood;
+            startOfRecovery = null;
         }
     }
 
-    const completed = episodes.filter((ep) => ep.endDate);
+    const completed = episodes.filter((ep) => ep.endDate).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
     const recovered = completed.filter((ep) => ep.recovered);
 
     const successRate =

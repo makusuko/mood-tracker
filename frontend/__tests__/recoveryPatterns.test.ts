@@ -37,7 +37,7 @@ describe('analyseRecoveryPatterns', () => {
       series(['2025-06-01', 3]),
     );
     expect(r.currentEpisode).not.toBeNull();
-    expect(r.currentEpisode?.startMood).toBe(3);
+    expect(r.currentEpisode?.worstMood).toBe(3);
     expect(r.currentEpisode?.recovered).toBe(false);
   });
 
@@ -103,5 +103,71 @@ describe('analyseRecoveryPatterns', () => {
       { date: '2025-06-02', mood: 5 },
     ];
     expect(() => analyseRecoveryPatterns(rows)).not.toThrow();
+  });
+
+  it('stores the worst mood during the period', () => {
+    const r = analyseRecoveryPatterns(
+      series(
+        // ep 1
+        ['2025-06-01T09:00:00Z', 3],
+        ['2025-06-01T18:00:00Z', 2],
+        ['2025-06-01T21:00:00Z', 1],
+        ['2025-06-02T12:00:00Z', 7],
+        ['2025-06-02T18:00:00Z', 5],
+        ['2025-06-02T21:00:00Z', 7],
+        ['2025-06-03T09:00:00Z', 7],
+        ['2025-06-03T12:00:00Z', 8],
+        // ep 2
+        ['2025-06-07T09:00:00Z', 3],
+        ['2025-06-07T18:00:00Z', 0],
+        ['2025-06-07T21:00:00Z', 3],
+        ['2025-06-08T12:00:00Z', 4],
+        ['2025-06-09T12:00:00Z', 7],
+        ['2025-06-10T18:00:00Z', 5],
+        ['2025-06-10T21:00:00Z', 7],
+        ['2025-06-10T09:00:00Z', 7],
+        ['2025-06-10T12:00:00Z', 9],
+      ),
+    );
+    expect(r.historicalEpisodes.length).toBe(2);
+    expect(r.historicalEpisodes.at(0)?.worstMood).toBe(1);
+    expect(r.historicalEpisodes.at(0)?.currentMood).toBe(8);
+
+    expect(r.historicalEpisodes.at(0)?.worstMood).toBe(0);
+    expect(r.historicalEpisodes.at(0)?.currentMood).toBe(9);
+  });
+
+  it('calculates duration as days, not as number of entries', () => {
+    const r = analyseRecoveryPatterns(
+      series(
+        // ep 1
+        ['2025-06-01T09:00:00Z', 3],
+        ['2025-06-01T18:00:00Z', 2],
+        ['2025-06-01T21:00:00Z', 1],
+        ['2025-06-02T12:00:00Z', 7],
+        ['2025-06-02T18:00:00Z', 5],
+        ['2025-06-02T21:00:00Z', 7],
+        ['2025-06-03T09:00:00Z', 7],
+        ['2025-06-03T12:00:00Z', 8],
+        // ep 2
+        ['2025-06-07T09:00:00Z', 3],
+        ['2025-06-07T18:00:00Z', 0],
+        ['2025-06-07T21:00:00Z', 3],
+        ['2025-06-08T12:00:00Z', 4],
+        ['2025-06-09T12:00:00Z', 7],
+        ['2025-06-10T18:00:00Z', 5],
+        ['2025-06-10T21:00:00Z', 7],
+        ['2025-06-10T09:00:00Z', 7],
+        ['2025-06-10T12:00:00Z', 9],
+      ),
+    );
+    expect(r.historicalEpisodes.length).toBe(2);
+    expect(r.historicalEpisodes.at(0)?.durationDays).toBe(3);
+    expect(r.historicalEpisodes.at(0)?.worstMood).toBe(1);
+    expect(r.historicalEpisodes.at(0)?.currentMood).toBe(8);
+
+    expect(r.historicalEpisodes.at(1)?.durationDays).toBe(4);
+    expect(r.historicalEpisodes.at(0)?.worstMood).toBe(0);
+    expect(r.historicalEpisodes.at(0)?.currentMood).toBe(9);
   });
 });
