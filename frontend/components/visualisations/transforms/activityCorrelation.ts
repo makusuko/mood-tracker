@@ -100,6 +100,11 @@ export type AggregateActivityCorrelationOptions = {
      */
     carryover?: boolean;
     /**
+     * Whether the activity contribution should be calculated as difference
+     * between single mood entries instead of the daily averages.
+     */
+    perEntry?: boolean;
+    /**
      * UTC ISO instant marking the TRUE window start. Rows earlier than this are
      * treated as activity INSTANCES only — they feed forward decay into the
      * window but are excluded from the day-mood samples and from the with/without
@@ -139,6 +144,7 @@ export const aggregateActivityCorrelation = (
     opts: AggregateActivityCorrelationOptions = {}
 ): ActivityCorrelationRow[] => {
     const carryover = opts.carryover === true;
+    const perEntry = opts.perEntry === true;
     // Rows strictly before windowStart are activity instances only (pre-window).
     const windowLowerMs =
         typeof opts.windowStart === 'string' && !Number.isNaN(new Date(opts.windowStart).getTime())
@@ -160,7 +166,7 @@ export const aggregateActivityCorrelation = (
         const t = new Date(row.date).getTime();
         if (Number.isNaN(t)) continue;
 
-        const day = localDateString(row.date);
+        const day = !perEntry ? localDateString(row.date) : row.entry_id.toString();
         const inWindow = t >= windowLowerMs;
 
         // Day-mood universe: IN-WINDOW entries only, de-duped by id (the join
