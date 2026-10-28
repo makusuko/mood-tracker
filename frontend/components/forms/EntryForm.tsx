@@ -660,7 +660,7 @@ const useThemedStyles = (colors: ThemeColors, insetTop: number = 16, insetBottom
         },
         floatingButton: {
             position: 'absolute',
-            bottom: 24,
+            bottom: insetBottom + 18,
             zIndex: 1000,
             width: 48,
             height: 48,
