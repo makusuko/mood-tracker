@@ -528,7 +528,12 @@ export const EntryForm: React.FC<EntryFormProps> = ({
             <Animated.ScrollView
                 ref={scrollRef}
                 style={styles.scroll}
-                contentContainerStyle={styles.contentContainer}
+                contentContainerStyle={[
+                    styles.contentContainer,
+                    // Extra bottom room == keyboard height so the last field can sit
+                    // above the keyboard. 0 when hidden (no-op).
+                    { paddingBottom: styles.contentContainer.paddingBottom + keyboardHeight },
+                ]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator
             >
