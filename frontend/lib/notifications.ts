@@ -180,6 +180,16 @@ export function addNotificationResponseReceivedListener(handler: (notification: 
   return () => subscription.remove();
 }
 
+/**
+ * Dismiss all pending notifications.
+ */
+export function dismissNotifications() {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
+  Notifications.dismissAllNotificationsAsync();
+}
+
 // ─── Permission ───────────────────────────────────────────────────────────────
 
 /**

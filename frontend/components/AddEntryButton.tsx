@@ -14,7 +14,7 @@ import { addMoodEntry } from '@/databases/database';
 import { useSettings } from '@/context/SettingsContext';
 import * as SQLite from 'expo-sqlite';
 import { EntryFormData, EntryFormModal } from './forms/EntryForm';
-import { addNotificationResponseReceivedListener } from '@/lib/notifications';
+import { addNotificationResponseReceivedListener, dismissNotifications } from '@/lib/notifications';
 import { useFocusEffect } from 'expo-router/build/react-navigation';
 
 
@@ -69,6 +69,7 @@ export function AddEntryButton() {
                 formData.photos
             );
             if (result.success) {
+                dismissNotifications();
                 setModalVisible(false);
                 refetchEntries();
             } else {
