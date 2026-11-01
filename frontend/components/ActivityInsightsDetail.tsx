@@ -38,6 +38,7 @@ import {
     type VariabilityKind,
     type CoOccurringRow,
 } from '@/components/visualisations/transforms/activityDetail';
+import { MIN_SAMPLES } from './visualisations/transforms/activityCorrelation';
 
 type FeatherName = React.ComponentProps<typeof Feather>['name'];
 
@@ -77,12 +78,12 @@ export const ActivityInsightsDetail: React.FC<{
     onClose: () => void;
 }> = ({ activity, onClose }) => {
     const colors = useThemeColors();
+    const styles = useThemedStyles(colors);
     const { format } = useDateFormat();
     /** "18 Sep 2026" in the user's chosen order (setting `date_format`). */
     const fmtDate = (iso: string): string => format(iso, 'medium');
     const insets = useSafeAreaInsets();
     const db = useSQLiteContext();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [data, setData] = useState<DetailData | null>(null);
 
     const load = useCallback(() => {
@@ -431,12 +432,12 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
                                 y1={g.y}
                                 x2={width}
                                 y2={g.y}
-                                stroke="lightgray"
-                                strokeOpacity={0.6}
-                                strokeWidth={1}
+                                stroke={Number.parseInt(g.label) <= 4 ? "red" : "lightgray"}
+                                strokeOpacity={0.8}
+                                strokeWidth={1.3}
                             />
                         </React.Fragment>
-                    ))}                    
+                    ))}
                     <Polyline
                         points={pointsStr}
                         fill="none"
@@ -451,9 +452,9 @@ const Sparkline: React.FC<{ values: number[]; color: string; styles: Styles }> =
     );
 };
 
-type Styles = ReturnType<typeof makeStyles>;
+type Styles = ReturnType<typeof useThemedStyles>;
 
-const makeStyles = (colors: ThemeColors) =>
+const useThemedStyles = (colors: ThemeColors) => useMemo(() =>
     StyleSheet.create({
         screen: {
             flex: 1,
@@ -664,6 +665,6 @@ const makeStyles = (colors: ThemeColors) =>
             color: colors.textSecondary,
             textAlign: 'center',
         },
-    });
+    }), [colors]);
 
 export default ActivityInsightsDetail;

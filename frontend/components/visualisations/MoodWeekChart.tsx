@@ -133,9 +133,9 @@ export const MoodWeekChart: React.FC<MoodWeekChartProps> = ({
                                     y1={g.y}
                                     x2={width}
                                     y2={g.y}
-                                    stroke="lightgray"
-                                    strokeOpacity={0.6}
-                                    strokeWidth={1}
+                                    stroke={Number.parseInt(g.label) <= 4 ? "red" : "lightgray"}
+                                    strokeOpacity={0.8}
+                                    strokeWidth={1.3}
                                 />
                             </React.Fragment>
                         ))}                    
