@@ -256,23 +256,23 @@ const RecentActivitiesCard = memo(function RecentActivitiesCard({ activities }: 
             <View style={styles.activitiesContainer}>
                 {activities.map((activity, index) => (
                     <Pressable
-                        key={activity.id}
+                        key={'button-' + activity.id}
                         onPress={() => setSelected({...activity, group_id: 0, position: 0})}
+                        style={({ pressed }) => [pressed && styles.activityPressed]}
                         accessibilityRole="button"
                         accessibilityLabel={`Open ${activity.name} insights`}
                     >
                         <View key={`${activity.name}-${index}`} style={styles.activityUnit}>
-                            <View style={styles.activityChip}>
-                                <ActivityIcon
-                                    iconName={activity.icon_name}
-                                    iconFamily={activity.icon_family}
-                                    color={colors.accent}
-                                    size={15}
-                                />
-                            </View>
+                            <ActivityIcon
+                                iconName={activity.icon_name}
+                                iconFamily={activity.icon_family}
+                                color={colors.text}
+                                size={14}
+                            />
                             <Text style={styles.activityText} numberOfLines={1}>
                                 {activity.name}
                             </Text>
+                            <Feather name="chevron-right" size={14} color={colors.textSecondary} />
                         </View>
                    </Pressable>
                 ))}
@@ -403,25 +403,27 @@ const useThemedStyles = (colors: ThemeColors) => {
         activitiesContainer: {
             flexDirection: 'row',
             flexWrap: 'wrap',
-            rowGap: 14,
-            columnGap: 16,
+            rowGap: 6,
+            columnGap: 6,
+            justifyContent: 'flex-start',
         },
         activityUnit: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 8,
-        },
-        activityChip: {
-            width: 30,
-            height: 30,
-            borderRadius: 15,
+            gap: 6,
+            paddingVertical: 7,
+            paddingHorizontal: 7,
+            borderRadius: 16,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.overlays.tagBorder,
             backgroundColor: colors.accentLight,
-            alignItems: 'center',
-            justifyContent: 'center',
+        },
+        activityPressed: {
+            opacity: 0.6,
         },
         activityText: {
             color: colors.text,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: '500',
         },
     }), [colors]);
