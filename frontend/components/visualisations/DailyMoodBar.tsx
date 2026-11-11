@@ -250,7 +250,7 @@ const DailyMoodChart = () => {
                 <Fragment key={`bar-${bar.index}`}>
                   <Path
                     d={topRoundedRectPath(bar.x, bar.y, bar.width, bar.height, BAR_RADIUS)}
-                    fill={moodColor(bar.value, accent, colors.overlays.tag)}
+                    fill={moodColor(bar.index + 0.5, accent, colors.overlays.tag)}
                   />
                   <SvgText
                     x={bar.x + bar.width / 2}

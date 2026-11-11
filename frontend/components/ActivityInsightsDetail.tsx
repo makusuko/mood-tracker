@@ -280,14 +280,14 @@ export const ActivityInsightsDetail: React.FC<{
                                 <CompareBar
                                     label={`With ${activity.name}`}
                                     value={imp.withAvg}
-                                    fill={colors.accent}
+                                    fill={moodColor(imp.withAvg, colors.accent, colors.overlays.tag)}
                                     styles={styles}
                                     colors={colors}
                                 />
                                 <CompareBar
                                     label="Other days"
                                     value={imp.withoutAvg}
-                                    fill={colors.textSecondary}
+                                    fill={moodColor(imp.withAvg, colors.textSecondary, colors.overlays.tag)}
                                     styles={styles}
                                     colors={colors}
                                 />

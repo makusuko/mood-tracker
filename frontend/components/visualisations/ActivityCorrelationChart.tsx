@@ -22,6 +22,7 @@ import {
   type ActivityCorrelationRawRow,
   type ActivityCorrelationResult,
 } from './transforms/activityCorrelation';
+import { moodColor } from '../timeline/moodColor';
 
 const BAR_HEIGHT = 12;
 const MAX_MOOD = 10;
@@ -108,7 +109,7 @@ const CorrelationRow = ({
               width={Math.max(0, withW)}
               height={BAR_HEIGHT}
               rx={BAR_HEIGHT / 2}
-              fill={positiveColor}
+              fill={moodColor(item.avg_with + 0.5, colors.accent, colors.overlays.tag)}
             />
           </Svg>
           <Text style={styles.barValue}>{item.avg_with.toFixed(1)}</Text>
@@ -131,7 +132,7 @@ const CorrelationRow = ({
               width={Math.max(0, withoutW)}
               height={BAR_HEIGHT}
               rx={BAR_HEIGHT / 2}
-              fill={colors.textSecondary}
+              fill={moodColor(item.avg_without + 0.5, colors.textSecondary, colors.overlays.tag)}
             />
           </Svg>
           <Text style={styles.barValue}>{item.avg_without.toFixed(1)}</Text>

@@ -8,6 +8,7 @@ import InfoBubble from '../InfoBubble';
 import { MoodEntry } from '../types';
 import { bucketMoodHistogram, NUM_BUCKETS } from './transforms/scatter';
 import { useTimeframe } from '@/context/TimeframeContext';
+import { moodColor } from '../timeline/moodColor';
 
 const PLOT_HEIGHT = 200;
 
@@ -203,6 +204,11 @@ const MoodHistogram = () => {
                                             styles.bar,
                                             {
                                                 height: getBarHeight(count),
+                                                backgroundColor: moodColor(
+                                                    index + 0.5,
+                                                    colors.accent,
+                                                    colors.overlays.tag,
+                                                ),
                                             }
                                         ]}
                                     />

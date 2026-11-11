@@ -17,6 +17,7 @@ import {
   type TimeOfDayData,
   type IntradaySwing,
 } from './transforms/timeOfDay';
+import { moodColor } from '../timeline/moodColor';
 
 const BAR_HEIGHT = 12;
 const MAX_MOOD = 10;
@@ -68,7 +69,7 @@ const BucketBar = ({
             width={Math.max(0, fillW)}
             height={BAR_HEIGHT}
             rx={BAR_HEIGHT / 2}
-            fill={colors.accent}
+            fill={moodColor(avgMood + 0.5, colors.accent, colors.overlays.tag)}
           />
         </Svg>
         <Text style={styles.barValue}>{avgMood.toFixed(1)}</Text>
