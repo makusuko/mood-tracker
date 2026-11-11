@@ -268,8 +268,17 @@ describe('buildMoodGradientStops', () => {
         expect(moodColor(10, ACCENT)).toContain('76, 175, 80');
     });
 
-    it('falls back to the default accent rgb for a non-hex accent', () => {
-        const stops = buildMoodGradientStops('rgba(1, 2, 3, 0.5)');
+    it('handles rgba and rgb color definitions', () => {
+        let stops = buildMoodGradientStops('rgba(1, 2, 3, 0.5)');
+        expect(stops[0].color).toBe('rgb(1, 2, 3)');
+        stops = buildMoodGradientStops('rgb(4, 5, 6)');
+        expect(stops[0].color).toBe('rgb(4, 5, 6)');
+    });
+
+    it('falls back to the default accent rgb for a non-parseable accent', () => {
+        let stops = buildMoodGradientStops('rgby(1, 2, 3, 0.5)');
+        expect(stops[0].color).toBe('rgb(76, 175, 80)');
+        stops = buildMoodGradientStops('not-a-color');
         expect(stops[0].color).toBe('rgb(76, 175, 80)');
     });
 

@@ -7,28 +7,25 @@
 // chart to guess its size again.
 import { localDateString } from '@/databases/dateHelpers';
 import { formatDate, type DateFormatPref } from '@/lib/dateFormat';
+import { processColor } from 'react-native';
 
 /**
- * Parse a CSS hex (`#RGB` or `#RRGGBB`) into an `{r,g,b}` triple. Returns null
- * for non-hex values (e.g. `rgba(...)` accents) so callers can fall back.
+ * Parses any valid CSS color definition into a `{a, r, g, b}` quad. Returns
+ * null for non-parseable values.
  */
-export const parseHexColor = (
-    hex: string
-): { r: number; g: number; b: number } | null => {
-    if (typeof hex !== 'string') return null;
-    let h = hex.trim().replace('#', '');
-    if (h.length === 3) {
-        h = h
-            .split('')
-            .map((c) => c + c)
-            .join('');
+export const parseColor = (color: string): { r: number, g: number, b: number, a: number } | null => {
+    const converted = processColor(color);
+    if (typeof converted === 'number') {
+        // Convert the components using unsigned SHR operation
+        return {
+            a: (converted & 0xFF000000) >>> 24,
+            r: (converted & 0x00FF0000) >>> 16,
+            g: (converted & 0x0000FF00) >>> 8,
+            b: (converted & 0x000000FF) >>> 0,
+        };
     }
-    if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) return null;
-    return {
-        r: parseInt(h.substring(0, 2), 16),
-        g: parseInt(h.substring(2, 4), 16),
-        b: parseInt(h.substring(4, 6), 16),
-    };
+    else
+        return null;
 };
 
 // The last 7 LOCAL days (today + the 6 before it), oldest first, as

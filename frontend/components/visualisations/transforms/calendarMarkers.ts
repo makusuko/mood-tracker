@@ -17,7 +17,7 @@
 // same transform themes correctly across all five themes.
 
 import { moodColor } from '@/components/timeline/moodColor';
-import { parseHexColor } from '@/components/visualisations/chartUtils';
+import { parseColor } from '@/components/visualisations/chartUtils';
 
 export type MoodMarkerRow = {
   date: string; // local "YYYY-MM-DD"
@@ -83,7 +83,7 @@ const contrastRatio = (l1: number, l2: number): number =>
   (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 
 const lumOf = (hex: string, fallback: { r: number; g: number; b: number }): number => {
-  const rgb = parseHexColor(hex) ?? fallback;
+  const rgb = parseColor(hex) ?? fallback;
   return relLuminance(rgb.r, rgb.g, rgb.b);
 };
 
@@ -104,8 +104,8 @@ export const moodMarkerStyle = (
   // Composite the marker's rgba(accent, alpha) over the card to its effective
   // opaque color: a low-mood marker is nearly the card, a high-mood marker is
   // near-solid accent.
-  const accent = parseHexColor(colors.accent) ?? ACCENT_FALLBACK;
-  const card = parseHexColor(colors.cardBackground) ?? CARD_FALLBACK;
+  const accent = parseColor(colors.accent) ?? ACCENT_FALLBACK;
+  const card = parseColor(colors.cardBackground) ?? CARD_FALLBACK;
   const clamped = Math.min(10, Math.max(0, avgMood));
   const alpha = MIN_ALPHA + (clamped / 10) * (MAX_ALPHA - MIN_ALPHA);
   const over = (c: number, base: number) => c * alpha + base * (1 - alpha);

@@ -59,8 +59,16 @@ describe('moodColor — accent parsing', () => {
         expect(moodColor(10, '#C7527C')).toBe('rgba(199, 82, 124, 1)');
     });
 
-    it('falls back to the default green RGB for a non-hex (rgba) accent', () => {
-        expect(moodColor(10, 'rgba(1,2,3,1)')).toBe(`${RGB} ${MOOD_COLOR_MAX_ALPHA})`);
+    it('properly handles rgb() accent color', () => {
+        expect(moodColor(10, 'rgb(76,175,80)')).toBe(`${RGB} ${MOOD_COLOR_MAX_ALPHA})`);
+    });
+
+    it('properly handles rgba() accent color', () => {
+        expect(moodColor(10, 'rgba(76,175,80,55)')).toBe(`${RGB} ${MOOD_COLOR_MAX_ALPHA})`);
+    });
+
+    it('falls back to the default green RGB for a non-parseable accent', () => {
+        expect(moodColor(10, 'rgby(1,2,3,4)')).toBe(`${RGB} ${MOOD_COLOR_MAX_ALPHA})`);
     });
 
     it('supports 3-digit shorthand hex accents', () => {

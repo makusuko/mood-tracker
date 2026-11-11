@@ -11,22 +11,23 @@
 // so all five themes (dark/light/cherry/midnight/forest) stay consistent for
 // free — there is no hardcoded green here.
 
-import { parseHexColor } from '@/components/visualisations/chartUtils';
+import { parseColor } from '../visualisations/chartUtils';
 
 /** Min/max alpha of the accent ramp. Mirrors the heatmap's 0.2..1.0. */
 export const MOOD_COLOR_MIN_ALPHA = 0.2;
 export const MOOD_COLOR_MAX_ALPHA = 1.0;
 
-/** Fallback RGB if the accent isn't a parseable hex (e.g. an rgba() accent). */
-const ACCENT_FALLBACK = { r: 76, g: 175, b: 80 }; // the default green accent
+/** Fallback RGBA if the accent color isn't a parseable. */
+const ACCENT_FALLBACK = { r: 76, g: 175, b: 80, a: 255 }; // the default green accent
 
 /**
- * The active accent as an `{r,g,b}` triple, with the shared fallback for a
- * non-hex accent. Exported so the chart gradient builder tints from the SAME
- * rgb (and the same fallback) this ramp does, one accent authority, not two.
+ * The active accent as an `{a,r,g,b}` quad, with the shared fallback for a
+ * non-parseable accent. Exported so the chart gradient builder tints from the
+ * SAME rgb (and the same fallback) this ramp does, one accent authority, not two.
  */
-export const moodAccentRgb = (accent: string): { r: number; g: number; b: number } =>
-    parseHexColor(accent) ?? ACCENT_FALLBACK;
+export const moodAccentRgb = (accent: string): { r: number, g: number, b: number, a: number } => {
+    return parseColor(accent) ?? ACCENT_FALLBACK;
+}
 
 /**
  * The ramp's ALPHA for a mood, `MIN_ALPHA + (clamp(mood,0,10)/10) * span`.
@@ -65,11 +66,13 @@ export const moodColor = (
     mood: number | null | undefined,
     accent: string,
     emptyColor = 'transparent',
+    withAlpha = false,
 ): string => {
     if (mood === null || mood === undefined || !Number.isFinite(mood)) {
         return emptyColor;
     }
 
     const rgb = moodAccentRgb(accent);
-    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${moodAlpha(mood)})`;
+    const alpha = (withAlpha ? (rgb.a / 255) : 1) * moodAlpha(mood);
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 };
