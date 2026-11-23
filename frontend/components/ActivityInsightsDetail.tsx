@@ -12,7 +12,6 @@ import Feather from '@expo/vector-icons/Feather';
 import { Svg, Polyline } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
-
 import { ThemeColors, useThemeColors } from '@/styles/global';
 import { useDataRefresh } from '@/hooks/useDataRefresh';
 import { useDateFormat } from '@/hooks/useDateFormat';
@@ -152,6 +151,13 @@ export const ActivityInsightsDetail: React.FC<{
             setCurrentActivity(updated);
         }
     };
+
+    const countToText = (count: number) => {
+        if (count == 1)
+            return perEntry ? `${count} entry` : `${count} day`
+        else
+            return perEntry ? `${count} entries` : `${count} days`
+    }
 
     // Title, then the pencil right beside it (it edits the name and group shown
     // there), then the close X pinned to the right edge. The title block may
@@ -348,7 +354,7 @@ export const ActivityInsightsDetail: React.FC<{
                             </Text>
                             <View style={styles.compare}>
                                 <CompareBar
-                                    label={`With ${currentActivity.name}`}
+                                    label="With"
                                     value={imp.withAvg}
                                     fill={colors.accent}
                                     styles={styles}
@@ -367,7 +373,7 @@ export const ActivityInsightsDetail: React.FC<{
                         <Text style={styles.cardBody}>
                             You've logged {currentActivity.name} on{' '}
                             <Text style={styles.emphasis}>
-                                {imp.withCount} {imp.withCount === 1 ? (!perEntry ? "day" : "entry") : (!perEntry ? "days" : "entries")}
+                                {countToText(imp.withCount)}
                             </Text>
                             {imp.withAvg !== null
                                 ? ` (averaging ${imp.withAvg.toFixed(1)})`
