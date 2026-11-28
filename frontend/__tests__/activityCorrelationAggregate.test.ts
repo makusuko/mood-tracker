@@ -156,6 +156,34 @@ describe('aggregateActivityCorrelation', () => {
     expect(run.avg_without).toBe(2);
   });
 
+  it('same-day with and without entries work properly in daily average mode', () => {
+    const rows = [
+      row(localIso('2026-06-11', 8), 8, 'Work'),
+      row(localIso('2026-06-11', 20), 4, null),
+      row(localIso('2026-06-12', 0), 6, null),
+    ];
+    const work = aggregateActivityCorrelation(rows, {perEntry: false})
+      .find((r) => r.activity_name === 'Work')!;
+    expect(work.avg_with).toBe(6); // day-1 average (8+4)/2
+    expect(work.avg_without).toBe(6); // day-2 average
+    expect(work.count_with).toBe(1); // one day with activity
+    expect(work.count_without).toBe(1); // one day without
+  });
+
+  it('same-day with and without entries work properly in per entry mode', () => {
+    const rows = [
+      row(localIso('2026-06-11', 8), 8, 'Work'),
+      row(localIso('2026-06-11', 20), 4, null),
+      row(localIso('2026-06-12', 0), 6, null),
+    ];
+    const work = aggregateActivityCorrelation(rows, {perEntry: true})
+      .find((r) => r.activity_name === 'Work')!;
+    expect(work.avg_with).toBe(8);
+    expect(work.avg_without).toBe(5);
+    expect(work.count_with).toBe(1); // number of entries
+    expect(work.count_without).toBe(2); // numer of entries
+  });
+
   it('flows through computeActivityCorrelation gate end-to-end', () => {
     // Build 6 with-days and 6 without-days for "Walk" so it clears MIN_SAMPLES.
     const rows: ActivityCorrelationRawRow[] = [];

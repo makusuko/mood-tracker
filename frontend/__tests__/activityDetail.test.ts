@@ -282,6 +282,36 @@ describe('activityMoodImpact', () => {
         expect(() => activityMoodImpact(1, [], MIN_SAMPLES, false, true)).not.toThrow();
         expect(activityMoodImpact(1, []).withAvg).toBeNull();
     });
+
+    it('delta calculated properly with enough decimals', () => {
+        // withAvg 6.25, withoutAvg 5.04: delta  = +1.2.
+        const all = [
+            // 4 "with" days averaging 6.25 (6+6+6+7 = 25)
+            at('2026-04-01', 6, 1),
+            at('2026-04-02', 6, 1),
+            at('2026-04-03', 6, 1),
+            at('2026-04-04', 7, 1),
+            // 25 "without" days averaging 5.04 (24×5 + 6 = 126)
+            ...Array.from({ length: 25 }, (_, i) =>
+                at(`2026-05-${String(i + 1).padStart(2, '0')}`, i === 24 ? 6 : 5)),
+        ];
+        const r = activityMoodImpact(1, all);
+        expect(r.withAvg).toBe(6.3);
+        expect(r.withoutAvg).toBe(5.0);
+        expect(r.delta).toBe(1.3);
+    });
+
+    it('skips null rows without throwing', () => {
+        const all = [
+            null as any,
+            at('2026-06-01', 8, 1),
+            at('2026-06-02', 4),
+        ];
+        let r: ReturnType<typeof activityMoodImpact>;
+        expect(() => (r = activityMoodImpact(1, all))).not.toThrow();
+        expect(r!.withAvg).toBe(8);
+        expect(r!.withoutAvg).toBe(4);
+    });
 });
 
 describe('moodTrendForActivity', () => {
@@ -316,6 +346,18 @@ describe('moodTrendForActivity', () => {
 
     it('is empty on empty input', () => {
         expect(moodTrendForActivity([])).toEqual([]);
+    });
+
+    it('skips null rows and non-string dates in the per-entry trend', () => {
+        const rows = [
+            null,
+            { entry_id: 98, date: null, mood: 5 },
+            { entry_id: 99, date: 'not-a-date', mood: 5 },
+            atTime('2026-04-02T09:00:00', 6),
+        ] as any;
+        expect(moodTrendForActivity(rows, true)).toEqual([
+            { day: '2026-04-02T09:00:00', avg: 6 },
+        ]);
     });
 });
 

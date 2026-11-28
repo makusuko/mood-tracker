@@ -45,9 +45,11 @@ export const FIXED_DAY = '2026-06-15';
 function parseDay(day: string): [number, number, number, number?, number?, number?] {
     const m = DATETIME_FORMAT_RE.exec(day);
     if (!m) throw new Error(`testing/builders: expected a 'YYYY-MM-DD' day + optional 'HH:mm:ss[.sss]' time, got '${day}'`);
+    // Optional time groups are undefined when absent so localDateTimeIso handles them properly
+    const opt = (s: string | undefined) => (s === undefined ? undefined : Number(s));
     const parts: [number, number, number, number?, number?, number?] = [
         Number(m[1]), Number(m[2]) - 1, Number(m[3]), // date
-        Number(m[5]), Number(m[6]), Number(m[8]), // time
+        opt(m[5]), opt(m[6]), opt(m[8]), // time
     ];
     // Date silently rolls '2026-02-30' to Mar 2 and month 00 to December: a
     // month off-by-one in a converted fixture would shift the input and the
@@ -72,6 +74,8 @@ export function localMidnight(day: string): Date {
 
 /** UTC ISO string of a local date: the form entries.date is stored in (`.toISOString()`). */
 export function localIso(day: string, hour = 12, minute = 0): string {
+    if (day.includes('T'))
+        throw new Error(`testing/builders: localIso takes a 'YYYY-MM-DD' day, got datetime '${day}' — use localDateTimeIso`);
     return localAt(day, hour, minute).toISOString();
 }
 

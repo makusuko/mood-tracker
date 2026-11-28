@@ -37,6 +37,7 @@ import {
     type VariabilityKind,
     type CoOccurringRow,
 } from '@/components/visualisations/transforms/activityDetail';
+import { localDateString } from '@/databases/dateHelpers';
 import { now } from '@/lib/clock';
 import { useSettings } from '@/context/SettingsContext';
 import { ActivityCorrelationRawRow, MIN_SAMPLES } from './visualisations/transforms/activityCorrelation';
@@ -128,11 +129,21 @@ export const ActivityInsightsDetail: React.FC<{
 
     const model = useMemo(() => {
         const d = data ?? EMPTY_DATA;
-        const moods = d.activityRows.map((r) => r.mood);
+        const rows = (d.activityRows ?? []).filter(Boolean);
+        const moods = rows.map((r) => r.mood);
+        // Count the number of entries/days the activity was logged on
+        const loggedCount = perEntry
+            ? rows.length
+            : new Set(
+                  rows
+                      .filter((r) => typeof r.date === 'string')
+                      .map((r) => localDateString(r.date)),
+              ).size;
         return {
             stats: activityMoodStats(moods),
             variability: classifyVariability(moods, { label: currentActivity.name }),
-            impact: activityMoodImpact(activity.id, d.allRows, MIN_SAMPLES, perEntry, carryover),
+            impact: activityMoodImpact(currentActivity.id, d.allRows, MIN_SAMPLES, perEntry, carryover),
+            loggedCount,
             buckets: bucketMoodHistogram(d.activityRows),
             trend: moodTrendForActivity(d.activityRows, perEntry),
             co: topCoOccurring(d.coRows),
@@ -275,13 +286,13 @@ export const ActivityInsightsDetail: React.FC<{
                 : `${fmtDate(model.firstDate)} – ${fmtDate(model.lastDate)}`
             : '';
 
-    const maxFreq = Math.max(1, ...model.buckets);
+    const maxFreq = Math.max(5, ...model.buckets);
 
     return (
         <View style={styles.screen}>
             {header}
             <ScrollView
-                key={activity.id}
+                key={currentActivity.id}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
@@ -306,7 +317,7 @@ export const ActivityInsightsDetail: React.FC<{
                     </View>
                 </Card>
 
-                {/* (d) Variability callout — the centerpiece, placed prominently up top */}
+                {/* (b) Variability callout — the centerpiece, placed prominently up top */}
                 <Card accentTop>
                     <View style={styles.calloutRow}>
                         <View style={[styles.iconChip, { backgroundColor: colors.accentLight }]}>
@@ -327,7 +338,7 @@ export const ActivityInsightsDetail: React.FC<{
                     </View>
                 </Card>
 
-                {/* (b) Mood when doing X — vs your usual */}
+                {/* (c) Mood when doing X — vs your usual */}
                 <Card>
                     <Text style={styles.cardTitle}>Mood when logging {currentActivity.name}</Text>
                     {imp.isMeaningful && imp.withAvg !== null && imp.withoutAvg !== null ? (
@@ -384,9 +395,9 @@ export const ActivityInsightsDetail: React.FC<{
                     )}
                 </Card>
 
-                {/* (c) Distribution histogram */}
+                {/* (d) Distribution histogram */}
                 <Card>
-                    <Text style={styles.cardTitle}>How entries are distributed</Text>
+                    <Text style={styles.cardTitle}>How those {perEntry ? 'entries' : 'days'} are distributed</Text>
                     <Text style={styles.cardBody}>
                         How often your mood on {currentActivity.name} lands at each level.
                     </Text>

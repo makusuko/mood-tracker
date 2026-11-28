@@ -238,9 +238,11 @@ export const activityMoodImpact = (
     carryover: boolean = false,
     windowStart: string | undefined = undefined,
 ): ActivityMoodImpact => {
-    const filteredEntries = allEntries.map((r) =>
-        (r.activity_id != activityId ?
-            {...r, activity_id: null, activity_name: null} : r));
+    const filteredEntries = (allEntries ?? [])
+        .filter(Boolean)
+        .map((r) =>
+            (r.activity_id != activityId ?
+                {...r, activity_id: null, activity_name: null} : r));
 
     const correlations = aggregateActivityCorrelation(filteredEntries, { carryover, perEntry, windowStart })
     if (correlations.length == 0)
@@ -251,14 +253,16 @@ export const activityMoodImpact = (
         };
 
     const corr = correlations[0];
-    const delta = corr.avg_with !== null && corr.avg_without !== null
-        ? round1(corr.avg_with - corr.avg_without) : null;
+    const withAvg = corr.avg_with !== null ? round1(corr.avg_with) : null;
+    const withoutAvg = corr.avg_without !== null ? round1(corr.avg_without) : null;
+    const delta = withAvg !== null && withoutAvg !== null
+        ? round1(withAvg - withoutAvg) : null;
     const meaningful = corr.count_with >= minSamples && corr.count_without >= minSamples
 
     return {
-        withAvg: corr.avg_with,
-        withoutAvg: corr.avg_without,
-        delta: delta,
+        withAvg,
+        withoutAvg,
+        delta,
         withCount: corr.count_with,
         withoutCount: corr.count_without,
         isMeaningful: meaningful,
@@ -282,7 +286,9 @@ export const moodTrendForActivity = (
         // Otherwise skip the entries with invalid dates, convert date to
         // localDateTimeString, use the entry's mood as "avg" and finally
         // sort the entries based on the date.
-        : rows.filter((d) => !Number.isNaN(convertStringToDate(d.date).getTime()))
+        : (rows ?? [])
+                .filter((d) => d && typeof d.date === 'string' &&
+                       !Number.isNaN(convertStringToDate(d.date).getTime()))
                 .map((d) => ({ day: localDateTimeString(d.date), avg: d.mood }))
                 .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
 
